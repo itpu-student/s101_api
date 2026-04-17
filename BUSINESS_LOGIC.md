@@ -600,7 +600,7 @@ db.otp_codes.createIndex({ telegram_id: 1 })
 db.otp_codes.createIndex({ expires_at: 1 }, { expireAfterSeconds: 0 })  // TTL auto-cleanup
 
 // places
-db.places.createIndex({ atc_id: 1 }, { unique: true })
+db.places.createIndex({ atc_id: 1 })
 db.places.createIndex({ status: 1, category_id: 1 })
 db.places.createIndex({ name: "text", "description.en": "text", "description.uz": "text" })
 db.places.createIndex({ avg_rating: -1 })
@@ -608,7 +608,10 @@ db.places.createIndex({ created_by: 1 })
 db.places.createIndex({ claimed_by: 1 })
 
 // reviews
-db.reviews.createIndex({ place_id: 1, latest: 1, created_at: -1 })
+db.reviews.createIndex(
+  { place_id: 1, user_id: 1 },
+  { unique: true, partialFilterExpression: { latest: true } }
+)
 db.reviews.createIndex({ user_id: 1 })
 db.reviews.createIndex({ place_id: 1, user_id: 1, latest: 1 })
 
