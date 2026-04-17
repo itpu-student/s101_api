@@ -62,7 +62,7 @@ Authentication uses a **Telegram-based OTP flow** (similar to [42.uz](https://42
 | Field | Detail |
 |-------|--------|
 | **Actor** | Guest |
-| **Flow** | 1. User opens the login page on buyelp.uz. 2. Web app shows a **6-digit code input** field and a link to the @BuYelpUzBot Telegram bot. 3. User is redirected to the TG bot. 4. User **shares their contact** (phone number) with the bot via Telegram's built-in contact sharing. 5. Bot stores the phone number, generates a 6-digit OTP with a TTL (e.g., 5 min), and sends it to the user in chat. 6. User goes back to the website and enters the 6-digit code. 7. Backend looks up the OTP, finds the matching `telegram_id`. 8. **If the TG user already exists** -> login: issue JWT (`typ: user`). **If new** -> register: create user record (name, telegram_id, phone from TG contact), then issue JWT. 9. User is redirected to home as authenticated. |
+| **Flow** | 1. User opens the login page on buyelp.uz. 2. Web app shows a **6-digit code input** field and a link to the @BuYelpUzBot Telegram bot. 3. User is redirected to the TG bot. 4. User **shares their contact** (phone number) with the bot via Telegram's built-in contact sharing. 5. Bot stores the phone number and TG username, generates a 6-digit OTP with a TTL (e.g., 5 min), and sends it to the user in chat. 6. User goes back to the website and enters the 6-digit code. 7. Backend looks up the OTP, finds the matching `telegram_id`. 8. **If the TG user already exists** -> login: refresh `username` from TG if changed, issue JWT (`typ: user`). **If new** -> register: create user record (name, username, telegram_id, phone from TG contact), then issue JWT. 9. User is redirected to home as authenticated. |
 | **Postcondition** | User account exists (created if first time). User holds a valid JWT with `typ: user`. |
 | **Notes** | No separate register vs login — single unified flow. First valid OTP from a new TG user auto-creates the account. The website only sends the 6-digit code to the backend (no need to send telegram_id — the OTP itself is the link). |
 
@@ -93,7 +93,7 @@ Authentication uses a **Telegram-based OTP flow** (similar to [42.uz](https://42
 |-------|--------|
 | **Actor** | Registered user |
 | **Precondition** | User is logged in |
-| **Flow** | 1. User clicks "Add a Place". 2. Fills in: name, category (selects from categories list), address `{en, uz}`, phone, description `{en, uz}`, weekly hours, lat/lon coordinates, images. 3. System validates data (all fields required). 4. System generates `atc_id` as `uz_{SOATO_ID}`. 5. Place is saved with status `0` (pending). 6. s101 admin is notified of new submission. 7. Once approved (status `10`), place becomes visible in search and listings. |
+| **Flow** | 1. User clicks "Add a Place". 2. Fills in: name, category (selects from categories list), address `{en, uz}`, phone, description `{en, uz}`, weekly hours, lat/lon coordinates, images. 3. System validates data (all fields required). 4. System generates `slug` from `name` (URL-friendly, collision-suffixed if needed). 5. System resolves `atc_id` as `uz_{SOATO_ID}` by calling an external SOATO lookup API with the submitted lat/lon. 6. Place is saved with status `0` (pending). 7. s101 admin is notified of new submission. 8. Once approved (status `10`), place becomes visible in search and listings. |
 | **Postcondition** | Place exists with status `0` (pending). Creator is recorded as `created_by`. |
 
 ### UC-6: Write a Review
@@ -142,12 +142,13 @@ Authentication uses a **Telegram-based OTP flow** (similar to [42.uz](https://42
 | **Actor** | s101 admin |
 | **Flow** | 1. Admin opens Reviews tab on dashboard.buyelp.uz. 2. Sees all reviews across places. 3. Can delete inappropriate/spam reviews. |
 
-### UC-12: Admin - Manage Users
+### UC-12: Admin - Block Users
 
 | Field | Detail |
 |-------|--------|
 | **Actor** | s101 admin |
-| **Flow** | 1. Admin opens Users tab on dashboard.buyelp.uz. 2. Sees all registered users with stats. 3. Can suspend or delete user accounts. |
+| **Flow** | 1. Admin opens Users tab on dashboard.buyelp.uz. 2. Sees all registered users with stats. 3. Can toggle the user's `blocked` flag. |
+| **Notes** | Blocked users keep existing data (reviews, places) visible but cannot log in or perform write actions. Admins do not hard-delete users — only the user themselves can delete their account (UC-14). |
 
 ### UC-13: Admin - Manage Categories
 
@@ -161,7 +162,8 @@ Authentication uses a **Telegram-based OTP flow** (similar to [42.uz](https://42
 | Field | Detail |
 |-------|--------|
 | **Actor** | Registered user |
-| **Flow** | 1. User navigates to profile page. 2. Views personal info (name from TG, phone, join date), review count, saved places count. 3. Sees list of their reviews with links to places. 4. Can edit display name and avatar. |
+| **Flow** | 1. User navigates to profile page. 2. Views personal info (name, username, phone, join date), review count, saved places count. 3. Sees list of their reviews with links to places. 4. Can edit display name and avatar. 5. Can delete their own account (hard delete of the user record; their reviews and created places remain but `created_by` / `user_id` is nulled). |
+| **Notes** | Phone number is **private** — visible only to the owner via `/api/auth/me`, never exposed on `/api/users/:id`. |
 
 ---
 
@@ -199,19 +201,26 @@ Single JWT format for both users and admins. Distinguished by the `typ` claim:
 ├──────────────────────────┤     ├──────────────────────────────┤
 │ _id          UUID        │     │ _id          UUID            │
 │ name         String      │     │ slug         String ‡        │
-│ telegram_id  String ‡    │     │ name         {en, uz}        │
-│ phone        String      │     │ desc         {en, uz}        │
-│ avatar_url   String      │     │ created_at   DateTime        │
-│ created_at   DateTime    │     │ updated_at   DateTime        │
-│ updated_at   DateTime    │     └──────────────────────────────┘
+│ username     String?     │     │ name         {en, uz}        │
+│   (from TG, nullable)    │     │ desc         {en, uz}        │
+│ telegram_id  String ‡    │     │ created_at   DateTime        │
+│ phone        String      │     │ updated_at   DateTime        │
+│   (private — self only)  │     └──────────────────────────────┘
+│ avatar_url   String      │              │
+│ blocked      Boolean     │              │
+│ created_at   DateTime    │              │
+│ updated_at   DateTime    │              │
 └──────────────────────────┘              │
          │                                │
          │     ┌──────────────────────────────────────────┐
          │     │              places                       │
          │     ├──────────────────────────────────────────┤
          │     │ _id            UUID                      │
-         │     │ atc_id         String ‡                  │
-         │     │   (format: uz_{SOATO_ID})                │
+         │     │ slug           String ‡                  │
+         │     │   (URL-friendly, from name)              │
+         │     │ atc_id         String                    │
+         │     │   (format: uz_{SOATO_ID},                │
+         │     │    resolved from lat/lon via ext. API)   │
          │     │ name           String                    │
          │     │ category_id    UUID → categories         │
          │     │ address        {en, uz}                  │
@@ -219,6 +228,9 @@ Single JWT format for both users and admins. Distinguished by the `typ` claim:
          │     │ description    {en, uz}                  │
          │     │ lat            Float                     │
          │     │ lon            Float                     │
+         │     │ location       GeoJSON Point             │
+         │     │   { type: "Point", coordinates:          │
+         │     │     [lon, lat] } — for 2dsphere index    │
          │     │ images         [String]                  │
          │     │ weekly_hours   Object                    │
          │     │   { mon, tue, ... sun }                  │
@@ -312,9 +324,11 @@ erDiagram
     users {
         UUID _id PK
         String name
+        String username "nullable, from TG"
         String telegram_id UK
-        String phone
+        String phone "private — self only"
         String avatar_url
+        Boolean blocked
         DateTime created_at
         DateTime updated_at
     }
@@ -338,7 +352,8 @@ erDiagram
 
     places {
         UUID _id PK
-        String atc_id UK "uz_{SOATO_ID}"
+        String slug UK "URL-friendly, from name"
+        String atc_id "uz_{SOATO_ID}, resolved from lat/lon"
         String name
         UUID category_id FK
         Object address "{en, uz}"
@@ -346,6 +361,7 @@ erDiagram
         Object description "{en, uz}"
         Float lat
         Float lon
+        Object location "GeoJSON Point {type, coordinates:[lon,lat]}"
         Array images
         Object weekly_hours
         Int status "0=pending 10=approved -10=rejected"
@@ -444,8 +460,9 @@ erDiagram
 
 | Method | Endpoint | Description | Auth |
 |--------|----------|-------------|------|
-| GET | `/api/users/:id` | Get user public profile | No |
+| GET | `/api/users/:id` | Get user public profile (name, username, avatar, join date, counts). **Excludes phone.** | No |
 | PUT | `/api/users/me` | Update own profile (name, avatar) | Yes (`typ: user`) |
+| DELETE | `/api/users/me` | Self-delete account (hard delete; nulls `created_by` / `user_id` on their places and reviews) | Yes (`typ: user`) |
 | GET | `/api/users/:id/reviews` | Get user's reviews | No |
 
 #### Categories
@@ -458,11 +475,9 @@ erDiagram
 
 | Method | Endpoint | Description | Auth |
 |--------|----------|-------------|------|
-| GET | `/api/places/list` | List places (category filter, pagination). Only status=10. | No |
-| GET | `/api/places/search?query=` | Search places by name/description. Only status=10. | No |
-| GET | `/api/places/top` | Get top-rated places (status=10, sorted by avg_rating) | No |
-| GET | `/api/places/:id` | Get place details (is_open derived from weekly_hours at response time) | No |
-| POST | `/api/places/create` | Create a new place (status=0) | Yes (`typ: user`) |
+| GET | `/api/places?query=&sort=&category=&near=&page=` | List/search places. Only `status=10`. `sort` = `top\|recent\|nearest`. `near=lat,lon` for geo search. | No |
+| GET | `/api/places/:id` | Get place details by UUID or `slug`. `is_open` derived from `weekly_hours` at response time. | No |
+| POST | `/api/places/create` | Create a new place (status=0). Backend generates `slug` from `name` and resolves `atc_id` from lat/lon. | Yes (`typ: user`) |
 | PUT | `/api/places/:id` | Edit place (only if user is the claimant/owner) | Yes (owner) |
 
 #### Reviews
@@ -499,7 +514,7 @@ erDiagram
 | GET | `/api/admin/reviews` | List all reviews | Yes (`typ: admin`) |
 | DELETE | `/api/admin/reviews/:id` | Delete a review | Yes (`typ: admin`) |
 | GET | `/api/admin/users` | List all users | Yes (`typ: admin`) |
-| PUT | `/api/admin/users/:id/suspend` | Suspend a user | Yes (`typ: admin`) |
+| PUT | `/api/admin/users/:id/block` | Set `blocked` flag on a user (body: `{ blocked: true\|false }`) | Yes (`typ: admin`) |
 | GET | `/api/admin/claims` | List all claim requests | Yes (`typ: admin`) |
 | PUT | `/api/admin/claims/:id` | Approve (10) or reject (-10) a claim | Yes (`typ: admin`) |
 | GET | `/api/admin/categories` | List all categories | Yes (`typ: admin`) |
@@ -579,6 +594,12 @@ Guest browses ──> Search/Filter ──> View Place ──> Read Reviews
 12. **`atc_id` format.** Every place has a unique ATC ID in the format `uz_{SOATO_ID}` for geographic identification.
 13. **Categories are seeded.** Default categories are created on app startup via seed code (upserted by `slug`). Admins can edit `name` and `desc` but cannot change the `slug`.
 14. **TG bot collects phone.** Users must share their contact (phone number) with the TG bot to receive an OTP. The phone is stored in the `users` collection.
+15. **Phone number is private.** A user's phone is only returned on `/api/auth/me`. It is never exposed via `/api/users/:id` or any public/admin-listing endpoint.
+16. **Username mirrors Telegram.** `users.username` is snapshotted from the user's Telegram handle at registration and refreshed on each login. It is optional (TG users without a public username). Display name (`name`) is independent and user-editable.
+17. **Place `slug` is URL-friendly and unique.** Generated from `name` at creation time, with a numeric suffix on collision. `GET /api/places/:id` accepts either the UUID or the slug.
+18. **`atc_id` is derived, not entered.** When a user submits a place, the backend calls an external SOATO lookup API with the submitted lat/lon and stores the resulting `uz_{SOATO_ID}`.
+19. **Geo search uses 2dsphere.** Places store a GeoJSON `location` field (`{type:"Point", coordinates:[lon,lat]}`) indexed as `2dsphere` to support `near=lat,lon` queries and `sort=nearest`. `lat`/`lon` are kept as separate floats for convenience in responses.
+20. **Blocked users vs. deleted users.** Admins can set `users.blocked = true` to prevent login and writes while keeping all historical data visible. Admins do **not** hard-delete users. Only the user themselves can hard-delete via `DELETE /api/users/me`; on self-delete, `created_by` / `user_id` references on their reviews and places are set to `null` (content stays, attribution becomes "deleted user").
 
 ---
 
@@ -587,6 +608,7 @@ Guest browses ──> Search/Filter ──> View Place ──> Read Reviews
 ```javascript
 // users
 db.users.createIndex({ telegram_id: 1 }, { unique: true })
+db.users.createIndex({ username: 1 }, { unique: true, sparse: true })
 
 // admins
 db.admins.createIndex({ username: 1 }, { unique: true })
@@ -600,12 +622,15 @@ db.otp_codes.createIndex({ telegram_id: 1 })
 db.otp_codes.createIndex({ expires_at: 1 }, { expireAfterSeconds: 0 })  // TTL auto-cleanup
 
 // places
+db.places.createIndex({ slug: 1 }, { unique: true })
 db.places.createIndex({ atc_id: 1 })
 db.places.createIndex({ status: 1, category_id: 1 })
 db.places.createIndex({ name: "text", "description.en": "text", "description.uz": "text" })
 db.places.createIndex({ avg_rating: -1 })
 db.places.createIndex({ created_by: 1 })
 db.places.createIndex({ claimed_by: 1 })
+// geo index for "near me" / nearest sort — lat/lon stored as GeoJSON Point in `location` field
+db.places.createIndex({ location: "2dsphere" })
 
 // reviews
 db.reviews.createIndex(
