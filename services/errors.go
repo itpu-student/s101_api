@@ -8,5 +8,7 @@ var (
 	ErrNotFound  = errors.New("not found")
 	ErrConflict  = errors.New("conflict")
 	ErrBadInput  = errors.New("bad input")
-	ErrForbidden = errors.New("forbidden")
+	ErrForbidden          = errors.New("forbidden")
+	ErrAlreadyClaimed     = errors.New("already claimed")
+	ErrPendingClaimExists = errors.New("pending claim exists")
 )

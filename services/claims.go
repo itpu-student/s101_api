@@ -68,3 +68,59 @@ func ReviewClaim(ctx context.Context, claimID string, status models.Status, revi
 	}
 	return nil
 }
+
+func SubmitClaim(ctx context.Context, userID string, in SubmitClaimInput) (models.ClaimRequest, error) {
+	if in.PlaceID == "" || in.Phone == "" {
+		return models.ClaimRequest{}, ErrBadInput
+	}
+
+	var p models.Place
+	if err := db.Places().FindOne(ctx, bson.M{"_id": in.PlaceID}).Decode(&p); err != nil {
+		return models.ClaimRequest{}, ErrNotFound
+	}
+	if p.ClaimedBy != nil {
+		return models.ClaimRequest{}, ErrAlreadyClaimed
+	}
+
+	// Reject duplicate pending claims by the same user.
+	existing := db.ClaimRequests().FindOne(ctx, bson.M{
+		"place_id": p.ID,
+		"user_id":  userID,
+		"status":   models.StatusPending,
+	})
+	if existing.Err() == nil {
+		return models.ClaimRequest{}, ErrPendingClaimExists
+	}
+
+	now := time.Now().UTC()
+	cr := models.ClaimRequest{
+		ID:        utils.NewUUIDv7(),
+		PlaceID:   p.ID,
+		UserID:    userID,
+		Phone:     in.Phone,
+		Note:      in.Note,
+		Status:    models.StatusPending,
+		CreatedAt: now,
+		UpdatedAt: now,
+	}
+	if _, err := db.ClaimRequests().InsertOne(ctx, cr); err != nil {
+		return models.ClaimRequest{}, err
+	}
+	return cr, nil
+}
+
+func ListClaimsForUser(ctx context.Context, userID string, paging utils.Paging) (Page[models.ClaimRequest], error) {
+	filter := bson.M{"user_id": userID}
+	cur, err := db.ClaimRequests().Find(ctx, filter,
+		options.Find().SetSort(bson.D{{Key: "created_at", Value: -1}}).
+			SetSkip(paging.Skip).SetLimit(int64(paging.Limit)))
+	if err != nil {
+		return Page[models.ClaimRequest]{}, err
+	}
+	var items []models.ClaimRequest
+	if err := cur.All(ctx, &items); err != nil {
+		return Page[models.ClaimRequest]{}, err
+	}
+	total, _ := db.ClaimRequests().CountDocuments(ctx, filter)
+	return NewPage(items, paging, total), nil
+}

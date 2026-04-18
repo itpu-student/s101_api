@@ -1,111 +1,58 @@
 package handlers
 
 import (
-	"context"
-	"time"
+	"errors"
 
 	"github.com/gin-gonic/gin"
-	"github.com/itpu-student/s101_api/db"
 	"github.com/itpu-student/s101_api/middleware"
-	"github.com/itpu-student/s101_api/models"
 	"github.com/itpu-student/s101_api/services"
 	"github.com/itpu-student/s101_api/utils"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // GET /api/places/:id/reviews?all=true
 // By default only latest=true reviews. ?all=true returns full history.
 func ListPlaceReviews(c *gin.Context) {
-	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
-	defer cancel()
-	p, ok := findPlaceByIDOrSlug(ctx, c.Param("id"))
-	if !ok {
-		utils.NotFound(c, "place not found")
+	paging := utils.ParsePaging(c)
+	all := c.Query("all") == "true"
+
+	// We still need the place ID if a slug was provided for the filter
+	p, err := services.FindPlaceByIDOrSlug(c.Request.Context(), c.Param("id"))
+	if err != nil {
+		if errors.Is(err, services.ErrNotFound) {
+			utils.NotFound(c, "place not found")
+			return
+		}
+		utils.Internal(c, "place lookup failed")
 		return
 	}
-	filter := bson.M{"place_id": p.ID}
-	if c.Query("all") != "true" {
-		filter["latest"] = true
-	}
-	paging := utils.ParsePaging(c)
-	cur, err := db.Reviews().Find(ctx, filter,
-		options.Find().SetSort(bson.D{{Key: "created_at", Value: -1}}).
-			SetSkip(paging.Skip).SetLimit(int64(paging.Limit)))
+
+	page, err := services.ListPlaceReviews(c.Request.Context(), p.ID, all, paging)
 	if err != nil {
 		utils.Internal(c, "review list failed")
 		return
 	}
-	var out []models.Review
-	if err := cur.All(ctx, &out); err != nil {
-		utils.Internal(c, "review decode failed")
-		return
-	}
-	total, _ := db.Reviews().CountDocuments(ctx, filter)
-	utils.OK(c, gin.H{"items": out, "page": paging.Page, "limit": paging.Limit, "total": total})
+	utils.OK(c, page)
 }
 
 // POST /api/places/:id/reviews
 func CreateReview(c *gin.Context) {
 	u := middleware.CurrentUser(c)
-	ctx, cancel := context.WithTimeout(c.Request.Context(), 10*time.Second)
-	defer cancel()
-
-	p, ok := findPlaceByIDOrSlug(ctx, c.Param("id"))
-	if !ok {
-		utils.NotFound(c, "place not found")
-		return
-	}
-	if p.Status != models.StatusApproved {
-		utils.Forbidden(c, "cannot review a non-approved place")
-		return
-	}
-
-	var in struct {
-		StarRating    int      `json:"star_rating" binding:"required,min=1,max=5"`
-		PriceRating   *int     `json:"price_rating" binding:"omitempty,min=1,max=5"`
-		QualityRating *int     `json:"quality_rating" binding:"omitempty,min=1,max=5"`
-		Text          string   `json:"text"`
-		Images        []string `json:"images"`
-	}
+	var in services.CreateReviewInput
 	if err := c.ShouldBindJSON(&in); err != nil {
 		utils.BadRequest(c, err.Error())
 		return
 	}
 
-	// Step 1 — demote any existing latest review for (place, user).
-	// Must happen BEFORE inserting the new latest=true row so the partial
-	// unique index on {place_id, user_id | latest:true} holds.
-	if _, err := db.Reviews().UpdateMany(ctx,
-		bson.M{"place_id": p.ID, "user_id": u.ID, "latest": true},
-		bson.M{"$set": bson.M{"latest": false}},
-	); err != nil {
-		utils.Internal(c, "review demotion failed")
-		return
-	}
-
-	userID := u.ID
-	now := time.Now().UTC()
-	r := models.Review{
-		ID:            utils.NewUUIDv7(),
-		PlaceID:       p.ID,
-		UserID:        &userID,
-		StarRating:    in.StarRating,
-		PriceRating:   in.PriceRating,
-		QualityRating: in.QualityRating,
-		Text:          in.Text,
-		Images:        coalesceStrings(in.Images),
-		Latest:        true,
-		CreatedAt:     now,
-	}
-	if _, err := db.Reviews().InsertOne(ctx, r); err != nil {
-		utils.Internal(c, "review insert failed")
-		return
-	}
-
-	if err := services.RecalcPlaceRating(ctx, p.ID); err != nil {
-		utils.Internal(c, "rating recalc failed")
+	r, err := services.CreateReview(c.Request.Context(), u.ID, c.Param("id"), in)
+	if err != nil {
+		switch {
+		case errors.Is(err, services.ErrNotFound):
+			utils.NotFound(c, "place not found")
+		case errors.Is(err, services.ErrForbidden):
+			utils.Forbidden(c, "cannot review a non-approved place")
+		default:
+			utils.Internal(c, "review creation failed")
+		}
 		return
 	}
 	utils.Created(c, r)
@@ -114,40 +61,15 @@ func CreateReview(c *gin.Context) {
 // DELETE /api/reviews/:id   — author only
 func DeleteReview(c *gin.Context) {
 	u := middleware.CurrentUser(c)
-	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
-	defer cancel()
-
-	id := c.Param("id")
-	var r models.Review
-	if err := db.Reviews().FindOne(ctx, bson.M{"_id": id}).Decode(&r); err != nil {
-		if err == mongo.ErrNoDocuments {
+	if err := services.DeleteUserReview(c.Request.Context(), u.ID, c.Param("id")); err != nil {
+		switch {
+		case errors.Is(err, services.ErrNotFound):
 			utils.NotFound(c, "review not found")
-			return
+		case errors.Is(err, services.ErrForbidden):
+			utils.Forbidden(c, "not your review")
+		default:
+			utils.Internal(c, "review delete failed")
 		}
-		utils.Internal(c, "review lookup failed")
-		return
-	}
-	if r.UserID == nil || *r.UserID != u.ID {
-		utils.Forbidden(c, "not your review")
-		return
-	}
-	if _, err := db.Reviews().DeleteOne(ctx, bson.M{"_id": id}); err != nil {
-		utils.Internal(c, "review delete failed")
-		return
-	}
-	// If we just deleted a latest review, promote the previous one to latest=true.
-	if r.Latest && r.UserID != nil {
-		var prev models.Review
-		err := db.Reviews().FindOne(ctx,
-			bson.M{"place_id": r.PlaceID, "user_id": *r.UserID},
-			options.FindOne().SetSort(bson.D{{Key: "created_at", Value: -1}}),
-		).Decode(&prev)
-		if err == nil {
-			_, _ = db.Reviews().UpdateByID(ctx, prev.ID, bson.M{"$set": bson.M{"latest": true}})
-		}
-	}
-	if err := services.RecalcPlaceRating(ctx, r.PlaceID); err != nil {
-		utils.Internal(c, "rating recalc failed")
 		return
 	}
 	utils.NoContent(c)

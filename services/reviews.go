@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/itpu-student/s101_api/db"
@@ -37,7 +38,7 @@ func ListReviewsAdmin(ctx context.Context, f ReviewFilter, paging utils.Paging) 
 func AdminDeleteReview(ctx context.Context, id string) error {
 	var r models.Review
 	if err := db.Reviews().FindOne(ctx, bson.M{"_id": id}).Decode(&r); err != nil {
-		if err == mongo.ErrNoDocuments {
+		if errors.Is(err, mongo.ErrNoDocuments) {
 			return ErrNotFound
 		}
 		return err
@@ -45,6 +46,93 @@ func AdminDeleteReview(ctx context.Context, id string) error {
 	if _, err := db.Reviews().DeleteOne(ctx, bson.M{"_id": id}); err != nil {
 		return err
 	}
+	if r.Latest && r.UserID != nil {
+		var prev models.Review
+		err := db.Reviews().FindOne(ctx,
+			bson.M{"place_id": r.PlaceID, "user_id": *r.UserID},
+			options.FindOne().SetSort(bson.D{{Key: "created_at", Value: -1}}),
+		).Decode(&prev)
+		if err == nil {
+			_, _ = db.Reviews().UpdateByID(ctx, prev.ID, bson.M{"$set": bson.M{"latest": true}})
+		}
+	}
+	return RecalcPlaceRating(ctx, r.PlaceID)
+}
+
+func ListPlaceReviews(ctx context.Context, placeID string, all bool, paging utils.Paging) (Page[models.Review], error) {
+	filter := bson.M{"place_id": placeID}
+	if !all {
+		filter["latest"] = true
+	}
+	cur, err := db.Reviews().Find(ctx, filter,
+		options.Find().SetSort(bson.D{{Key: "created_at", Value: -1}}).
+			SetSkip(paging.Skip).SetLimit(int64(paging.Limit)))
+	if err != nil {
+		return Page[models.Review]{}, err
+	}
+	var items []models.Review
+	if err := cur.All(ctx, &items); err != nil {
+		return Page[models.Review]{}, err
+	}
+	total, _ := db.Reviews().CountDocuments(ctx, filter)
+	return NewPage(items, paging, total), nil
+}
+
+func CreateReview(ctx context.Context, userID string, placeIDOrSlug string, in CreateReviewInput) (models.Review, error) {
+	p, err := FindPlaceByIDOrSlug(ctx, placeIDOrSlug)
+	if err != nil {
+		return models.Review{}, err
+	}
+	if p.Status != models.StatusApproved {
+		return models.Review{}, ErrForbidden
+	}
+
+	// Step 1 — demote any existing latest review for (place, user).
+	if _, err := db.Reviews().UpdateMany(ctx,
+		bson.M{"place_id": p.ID, "user_id": userID, "latest": true},
+		bson.M{"$set": bson.M{"latest": false}},
+	); err != nil {
+		return models.Review{}, err
+	}
+
+	now := time.Now().UTC()
+	r := models.Review{
+		ID:            utils.NewUUIDv7(),
+		PlaceID:       p.ID,
+		UserID:        &userID,
+		StarRating:    in.StarRating,
+		PriceRating:   in.PriceRating,
+		QualityRating: in.QualityRating,
+		Text:          in.Text,
+		Images:        CoalesceStrings(in.Images),
+		Latest:        true,
+		CreatedAt:     now,
+	}
+	if _, err := db.Reviews().InsertOne(ctx, r); err != nil {
+		return models.Review{}, err
+	}
+
+	if err := RecalcPlaceRating(ctx, p.ID); err != nil {
+		return models.Review{}, err
+	}
+	return r, nil
+}
+
+func DeleteUserReview(ctx context.Context, userID string, reviewID string) error {
+	var r models.Review
+	if err := db.Reviews().FindOne(ctx, bson.M{"_id": reviewID}).Decode(&r); err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return ErrNotFound
+		}
+		return err
+	}
+	if r.UserID == nil || *r.UserID != userID {
+		return ErrForbidden
+	}
+	if _, err := db.Reviews().DeleteOne(ctx, bson.M{"_id": reviewID}); err != nil {
+		return err
+	}
+	// If we just deleted a latest review, promote the previous one to latest=true.
 	if r.Latest && r.UserID != nil {
 		var prev models.Review
 		err := db.Reviews().FindOne(ctx,

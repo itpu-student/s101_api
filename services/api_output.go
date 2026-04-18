@@ -98,3 +98,12 @@ func NewAdminUserView(u models.User) AdminUserView {
 		CreatedAt:  u.CreatedAt,
 	}
 }
+
+type PlaceView struct {
+	models.Place
+	IsOpen bool `json:"is_open"`
+}
+
+func NewPlaceView(p models.Place) PlaceView {
+	return PlaceView{Place: p, IsOpen: utils.IsOpen(p.WeeklyHours, time.Now())}
+}
