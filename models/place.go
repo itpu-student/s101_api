@@ -43,7 +43,7 @@ type Place struct {
 	Location     GeoPoint    `bson:"location" json:"location"`
 	Images       []string    `bson:"images" json:"images"`
 	WeeklyHours  WeeklyHours `bson:"weekly_hours" json:"weekly_hours"`
-	Status       int         `bson:"status" json:"status"`
+	Status       Status      `bson:"status" json:"status"`
 	AvgRating    float64     `bson:"avg_rating" json:"avg_rating"`
 	ReviewCount  int         `bson:"review_count" json:"review_count"`
 	CreatedBy    *string     `bson:"created_by" json:"created_by"`

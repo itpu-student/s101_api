@@ -8,6 +8,7 @@ import (
 	"github.com/itpu-student/s101_api/db"
 	"github.com/itpu-student/s101_api/middleware"
 	"github.com/itpu-student/s101_api/models"
+	"github.com/itpu-student/s101_api/services"
 	"github.com/itpu-student/s101_api/utils"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -103,7 +104,7 @@ func CreateReview(c *gin.Context) {
 		return
 	}
 
-	if err := RecalcPlaceRating(ctx, p.ID); err != nil {
+	if err := services.RecalcPlaceRating(ctx, p.ID); err != nil {
 		utils.Internal(c, "rating recalc failed")
 		return
 	}
@@ -145,44 +146,9 @@ func DeleteReview(c *gin.Context) {
 			_, _ = db.Reviews().UpdateByID(ctx, prev.ID, bson.M{"$set": bson.M{"latest": true}})
 		}
 	}
-	if err := RecalcPlaceRating(ctx, r.PlaceID); err != nil {
+	if err := services.RecalcPlaceRating(ctx, r.PlaceID); err != nil {
 		utils.Internal(c, "rating recalc failed")
 		return
 	}
 	utils.NoContent(c)
-}
-
-// RecalcPlaceRating recomputes avg_rating & review_count from latest=true reviews.
-func RecalcPlaceRating(ctx context.Context, placeID string) error {
-	pipeline := mongo.Pipeline{
-		{{Key: "$match", Value: bson.M{"place_id": placeID, "latest": true}}},
-		{{Key: "$group", Value: bson.M{
-			"_id": nil,
-			"avg": bson.M{"$avg": "$star_rating"},
-			"cnt": bson.M{"$sum": 1},
-		}}},
-	}
-	cur, err := db.Reviews().Aggregate(ctx, pipeline)
-	if err != nil {
-		return err
-	}
-	defer cur.Close(ctx)
-
-	var out struct {
-		Avg float64 `bson:"avg"`
-		Cnt int     `bson:"cnt"`
-	}
-	if cur.Next(ctx) {
-		_ = cur.Decode(&out)
-	}
-	_, err = db.Places().UpdateByID(ctx, placeID, bson.M{"$set": bson.M{
-		"avg_rating":   round1(out.Avg),
-		"review_count": out.Cnt,
-		"updated_at":   time.Now().UTC(),
-	}})
-	return err
-}
-
-func round1(f float64) float64 {
-	return float64(int(f*10+0.5)) / 10
 }

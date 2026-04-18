@@ -12,6 +12,7 @@ import (
 	"github.com/itpu-student/s101_api/db"
 	"github.com/itpu-student/s101_api/middleware"
 	"github.com/itpu-student/s101_api/models"
+	"github.com/itpu-student/s101_api/services"
 	"github.com/itpu-student/s101_api/utils"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -49,7 +50,7 @@ func ListPlaces(c *gin.Context) {
 
 	// category: accept either category_id (UUID) or slug
 	if cat := c.Query("category"); cat != "" {
-		if id, ok := resolveCategoryID(ctx, cat); ok {
+		if id, ok := services.ResolveCategoryID(ctx, cat); ok {
 			filter["category_id"] = id
 		} else {
 			utils.OK(c, gin.H{"items": []any{}, "page": paging.Page, "limit": paging.Limit, "total": 0})
@@ -148,7 +149,7 @@ func CreatePlace(c *gin.Context) {
 	defer cancel()
 
 	// validate category exists
-	catID, ok := resolveCategoryID(ctx, in.CategoryID)
+	catID, ok := services.ResolveCategoryID(ctx, in.CategoryID)
 	if !ok {
 		utils.BadRequest(c, "invalid category")
 		return
@@ -253,18 +254,6 @@ func findPlaceByIDOrSlug(ctx context.Context, idOrSlug string) (models.Place, bo
 		return models.Place{}, false
 	}
 	return p, true
-}
-
-func resolveCategoryID(ctx context.Context, val string) (string, bool) {
-	var cat models.Category
-	err := db.Categories().FindOne(ctx, bson.M{"$or": bson.A{
-		bson.M{"_id": val},
-		bson.M{"slug": val},
-	}}).Decode(&cat)
-	if err != nil {
-		return "", false
-	}
-	return cat.ID, true
 }
 
 // generateUniqueSlug appends -2, -3, ... until the slug is unique.

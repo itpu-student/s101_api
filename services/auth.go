@@ -1,0 +1,95 @@
+package services
+
+import (
+	"context"
+	"errors"
+	"time"
+
+	"github.com/itpu-student/s101_api/db"
+	"github.com/itpu-student/s101_api/models"
+	"github.com/itpu-student/s101_api/utils"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+)
+
+// VerifyCode consumes a 6-digit OTP, upserts the user (first-time -> register,
+// returning user -> refresh username from TG), and issues a JWT.
+func VerifyCode(ctx context.Context, in VerifyCodeInput) (VerifyCodeOutput, error) {
+	if len(in.Code) != 6 {
+		return VerifyCodeOutput{}, ErrBadInput
+	}
+
+	var otp models.OTPCode
+	err := db.OTPCodes().FindOne(ctx, bson.M{
+		"code":       in.Code,
+		"used":       false,
+		"expires_at": bson.M{"$gt": time.Now().UTC()},
+	}).Decode(&otp)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return VerifyCodeOutput{}, ErrNotFound
+		}
+		return VerifyCodeOutput{}, err
+	}
+	_, _ = db.OTPCodes().UpdateByID(ctx, otp.ID, bson.M{"$set": bson.M{"used": true}})
+
+	now := time.Now().UTC()
+	var user models.User
+	err = db.Users().FindOne(ctx, bson.M{"telegram_id": otp.TelegramID}).Decode(&user)
+	switch {
+	case err == nil:
+		update := bson.M{"updated_at": now}
+		if otp.Username != nil && (user.Username == nil || *user.Username != *otp.Username) {
+			update["username"] = *otp.Username
+			user.Username = otp.Username
+		}
+		_, _ = db.Users().UpdateByID(ctx, user.ID, bson.M{"$set": update})
+	case errors.Is(err, mongo.ErrNoDocuments):
+		user = models.User{
+			ID:         utils.NewUUID(),
+			Name:       firstNonEmpty(otp.FirstName, "User"),
+			Username:   otp.Username,
+			TelegramID: otp.TelegramID,
+			Phone:      otp.Phone,
+			CreatedAt:  now,
+			UpdatedAt:  now,
+		}
+		if _, err := db.Users().InsertOne(ctx, user); err != nil {
+			return VerifyCodeOutput{}, err
+		}
+	default:
+		return VerifyCodeOutput{}, err
+	}
+
+	if user.Blocked {
+		return VerifyCodeOutput{}, ErrForbidden
+	}
+
+	token, err := utils.IssueJWT(user.ID, utils.TypUser)
+	if err != nil {
+		return VerifyCodeOutput{}, err
+	}
+	return VerifyCodeOutput{Token: token, User: user.Public()}, nil
+}
+
+// GetMe builds the /auth/me payload for the already-loaded user.
+func GetMe(ctx context.Context, u *models.User) (MeView, error) {
+	count, _ := db.Places().CountDocuments(ctx, bson.M{"claimed_by": u.ID})
+	return MeView{
+		ID:        u.ID,
+		Name:      u.Name,
+		Username:  u.Username,
+		Phone:     u.Phone,
+		AvatarURL: u.AvatarURL,
+		CreatedAt: u.CreatedAt,
+		OwnsPlace: count > 0,
+		Blocked:   u.Blocked,
+	}, nil
+}
+
+func firstNonEmpty(a, b string) string {
+	if a != "" {
+		return a
+	}
+	return b
+}
