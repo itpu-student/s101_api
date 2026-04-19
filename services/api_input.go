@@ -47,3 +47,36 @@ type UpdateMeInput struct {
 	Name      *string `json:"name"`
 	AvatarURL *string `json:"avatar_url"`
 }
+
+type SubmitClaimInput struct {
+	PlaceID string `json:"place_id"`
+	Phone   string `json:"phone"`
+	Note    string `json:"note"`
+}
+
+type CreateReviewInput struct {
+	StarRating    int      `json:"star_rating"`
+	PriceRating   *int     `json:"price_rating"`
+	QualityRating *int     `json:"quality_rating"`
+	Text          string   `json:"text"`
+	Images        []string `json:"images"`
+}
+
+type CreatePlaceInput struct {
+	Name        string             `json:"name"`
+	CategoryID  string             `json:"category_id"`
+	Address     models.I18nText    `json:"address"`
+	Phone       string             `json:"phone"`
+	Description models.I18nText    `json:"description"`
+	Lat         float64            `json:"lat"`
+	Lon         float64            `json:"lon"`
+	Images      []string           `json:"images"`
+	WeeklyHours models.WeeklyHours `json:"weekly_hours"`
+}
+
+type EditPlaceInput struct {
+	Phone       *string             `json:"phone"`
+	Description *models.I18nText    `json:"description"`
+	WeeklyHours *models.WeeklyHours `json:"weekly_hours"`
+	Images      *[]string           `json:"images"`
+}
