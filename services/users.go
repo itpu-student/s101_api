@@ -3,6 +3,8 @@ package services
 import (
 	"context"
 	"errors"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/itpu-student/s101_api/db"
@@ -12,6 +14,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
+
+var reUsername = regexp.MustCompile(`^[a-zA-Z0-9_]+$`)
 
 func ListUsersAdmin(ctx context.Context, paging utils.Paging) (*Page[AdminUserView], error) {
 	filter := bson.M{}
@@ -68,6 +72,22 @@ func UpdateMe(ctx context.Context, id string, in UpdateMeInput) (*models.PublicU
 	update := bson.M{"updated_at": time.Now().UTC()}
 	if in.Name != nil {
 		update["name"] = *in.Name
+	}
+	if in.Username != nil {
+		un := strings.ToLower(strings.TrimSpace(*in.Username))
+		if !reUsername.MatchString(un) {
+			return nil, ErrBadInput
+		}
+		// check uniqueness
+		var existing models.User
+		err := db.Users().FindOne(ctx, bson.M{
+			"username": un,
+			"_id":      bson.M{"$ne": id},
+		}).Decode(&existing)
+		if err == nil {
+			return nil, ErrConflict
+		}
+		update["username"] = un
 	}
 	if in.AvatarKey != nil {
 		update["avatar_key"] = *in.AvatarKey
