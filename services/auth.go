@@ -31,7 +31,10 @@ func VerifyCode(ctx context.Context, in VerifyCodeInput) (*VerifyCodeOutput, err
 		}
 		return nil, err
 	}
-	_, _ = db.OTPCodes().UpdateByID(ctx, otp.ID, bson.M{"$set": bson.M{"used": true}})
+	_, err = db.OTPCodes().UpdateByID(ctx, otp.ID, bson.M{"$set": bson.M{"used": true}})
+	if err != nil {
+		return nil, err
+	}
 
 	now := time.Now().UTC()
 	var user models.User
