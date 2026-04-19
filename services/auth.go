@@ -84,7 +84,7 @@ func GetMe(ctx context.Context, u *models.User) (*MeView, error) {
 		Name:      u.Name,
 		Username:  u.Username,
 		Phone:     u.Phone,
-		AvatarURL: u.AvatarURL,
+		AvatarKey: u.AvatarKey,
 		CreatedAt: u.CreatedAt,
 		OwnsPlace: count > 0,
 		Blocked:   u.Blocked,

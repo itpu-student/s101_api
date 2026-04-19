@@ -47,6 +47,7 @@ func Reviews() *mongo.Collection       { return DB.Collection("reviews") }
 func Bookmarks() *mongo.Collection     { return DB.Collection("bookmarks") }
 func OTPCodes() *mongo.Collection      { return DB.Collection("otp_codes") }
 func ClaimRequests() *mongo.Collection { return DB.Collection("claim_requests") }
+func Files() *mongo.Collection         { return DB.Collection("files") }
 
 func EnsureIndexes(ctx context.Context) {
 
@@ -124,6 +125,10 @@ func EnsureIndexes(ctx context.Context) {
 		Keys: bson.D{{Key: "place_id", Value: 1}, {Key: "status", Value: 1}},
 	})
 	mustIdx(ctx, ClaimRequests(), mongo.IndexModel{Keys: bson.D{{Key: "user_id", Value: 1}}})
+
+	// Files
+	mustIdx(ctx, Files(), mongo.IndexModel{Keys: bson.D{{Key: "created_by", Value: 1}}})
+	mustIdx(ctx, Files(), mongo.IndexModel{Keys: bson.D{{Key: "usage", Value: 1}}})
 
 	log.Println("indexes ensured")
 }

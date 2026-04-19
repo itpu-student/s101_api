@@ -39,7 +39,7 @@ type AdminUserView struct {
 	Username   *string   `json:"username,omitempty"`
 	TelegramID string    `json:"telegram_id"`
 	Phone      string    `json:"phone"`
-	AvatarURL  string    `json:"avatar_url"`
+	AvatarKey  *string   `json:"avatar_key,omitempty"`
 	Blocked    bool      `json:"blocked"`
 	CreatedAt  time.Time `json:"created_at"`
 }
@@ -60,7 +60,7 @@ type MeView struct {
 	Name      string    `json:"name"`
 	Username  *string   `json:"username,omitempty"`
 	Phone     string    `json:"phone"`
-	AvatarURL string    `json:"avatar_url"`
+	AvatarKey *string   `json:"avatar_key,omitempty"`
 	CreatedAt time.Time `json:"created_at"`
 	OwnsPlace bool      `json:"owns_place"`
 	Blocked   bool      `json:"blocked"`
@@ -93,7 +93,7 @@ func NewAdminUserView(u models.User) *AdminUserView {
 		Username:   u.Username,
 		TelegramID: u.TelegramID,
 		Phone:      u.Phone,
-		AvatarURL:  u.AvatarURL,
+		AvatarKey:  u.AvatarKey,
 		Blocked:    u.Blocked,
 		CreatedAt:  u.CreatedAt,
 	}

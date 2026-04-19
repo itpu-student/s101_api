@@ -8,7 +8,7 @@ type User struct {
 	Username   *string   `bson:"username,omitempty" json:"username,omitempty"`
 	TelegramID string    `bson:"telegram_id" json:"-"`
 	Phone      string    `bson:"phone" json:"-"` // private, only returned via /auth/me
-	AvatarURL  string    `bson:"avatar_url" json:"avatar_url"`
+	AvatarKey  *string   `bson:"avatar_key,omitempty" json:"avatar_key,omitempty"`
 	Blocked    bool      `bson:"blocked" json:"blocked"`
 	CreatedAt  time.Time `bson:"created_at" json:"created_at"`
 	UpdatedAt  time.Time `bson:"updated_at" json:"updated_at"`
@@ -19,7 +19,7 @@ type PublicUser struct {
 	ID        string    `json:"id"`
 	Name      string    `json:"name"`
 	Username  *string   `json:"username,omitempty"`
-	AvatarURL string    `json:"avatar_url"`
+	AvatarKey *string   `json:"avatar_key,omitempty"`
 	CreatedAt time.Time `json:"created_at"`
 }
 
@@ -28,7 +28,7 @@ func (u *User) Public() *PublicUser {
 		ID:        u.ID,
 		Name:      u.Name,
 		Username:  u.Username,
-		AvatarURL: u.AvatarURL,
+		AvatarKey: u.AvatarKey,
 		CreatedAt: u.CreatedAt,
 	}
 }

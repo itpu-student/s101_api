@@ -69,8 +69,8 @@ func UpdateMe(ctx context.Context, id string, in UpdateMeInput) (*models.PublicU
 	if in.Name != nil {
 		update["name"] = *in.Name
 	}
-	if in.AvatarURL != nil {
-		update["avatar_url"] = *in.AvatarURL
+	if in.AvatarKey != nil {
+		update["avatar_key"] = *in.AvatarKey
 	}
 	res, err := db.Users().UpdateByID(ctx, id, bson.M{"$set": update})
 	if err != nil {

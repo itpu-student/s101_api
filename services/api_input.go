@@ -45,7 +45,7 @@ type VerifyCodeInput struct {
 
 type UpdateMeInput struct {
 	Name      *string `json:"name"`
-	AvatarURL *string `json:"avatar_url"`
+	AvatarKey *string `json:"avatar_key"`
 }
 
 type SubmitClaimInput struct {

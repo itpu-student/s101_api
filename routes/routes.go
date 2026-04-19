@@ -9,6 +9,9 @@ import (
 func Register(r *gin.Engine) {
 	r.GET("/healthz", func(c *gin.Context) { c.JSON(200, gin.H{"ok": true}) })
 
+	// public static file serving for uploaded assets
+	r.Static("/static", "./static")
+
 	api := r.Group("/api")
 
 	// ---- public auth ----
@@ -49,6 +52,9 @@ func Register(r *gin.Engine) {
 	// ---- claims ----
 	api.POST("/claims", middleware.RequireUser(), handlers.SubmitClaim)
 	api.GET("/claims/mine", middleware.RequireUser(), handlers.MyClaims)
+
+	// ---- files ----
+	api.POST("/files/upload", middleware.RequireUser(), handlers.UploadFile)
 
 	// ---- admin ----
 	admin := api.Group("/admin", middleware.RequireAdmin())

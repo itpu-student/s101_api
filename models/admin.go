@@ -7,5 +7,6 @@ type Admin struct {
 	Username     string    `bson:"username" json:"username"`
 	PasswordHash string    `bson:"password" json:"-"`
 	Name         string    `bson:"name" json:"name"`
+	AvatarKey    *string   `bson:"avatar_key,omitempty" json:"avatar_key,omitempty"`
 	CreatedAt    time.Time `bson:"created_at" json:"created_at"`
 }
