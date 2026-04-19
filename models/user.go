@@ -23,8 +23,8 @@ type PublicUser struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
-func (u *User) Public() PublicUser {
-	return PublicUser{
+func (u *User) Public() *PublicUser {
+	return &PublicUser{
 		ID:        u.ID,
 		Name:      u.Name,
 		Username:  u.Username,

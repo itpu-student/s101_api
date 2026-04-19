@@ -13,16 +13,16 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-func ListBookmarks(ctx context.Context, userID string, paging utils.Paging) (BookmarksView, error) {
+func ListBookmarks(ctx context.Context, userID string, paging utils.Paging) (*BookmarksView, error) {
 	cur, err := db.Bookmarks().Find(ctx, bson.M{"user_id": userID},
 		options.Find().SetSort(bson.D{{Key: "created_at", Value: -1}}).
 			SetSkip(paging.Skip).SetLimit(int64(paging.Limit)))
 	if err != nil {
-		return BookmarksView{}, err
+		return nil, err
 	}
 	var bms []models.Bookmark
 	if err := cur.All(ctx, &bms); err != nil {
-		return BookmarksView{}, err
+		return nil, err
 	}
 	ids := make([]string, 0, len(bms))
 	for _, b := range bms {
@@ -32,23 +32,23 @@ func ListBookmarks(ctx context.Context, userID string, paging utils.Paging) (Boo
 	if len(ids) > 0 {
 		pcur, err := db.Places().Find(ctx, bson.M{"_id": bson.M{"$in": ids}})
 		if err != nil {
-			return BookmarksView{}, err
+			return nil, err
 		}
 		if err := pcur.All(ctx, &places); err != nil {
-			return BookmarksView{}, err
+			return nil, err
 		}
 	}
-	return BookmarksView{Bookmarks: bms, Places: places}, nil
+	return &BookmarksView{Bookmarks: bms, Places: places}, nil
 }
 
 // AddBookmark is idempotent. The bool return is true when the row already
 // existed (duplicate key); handler decides between 201 and 200 on that.
-func AddBookmark(ctx context.Context, userID, placeID string) (models.Bookmark, bool, error) {
+func AddBookmark(ctx context.Context, userID, placeID string) (*models.Bookmark, bool, error) {
 	if err := db.Places().FindOne(ctx, bson.M{"_id": placeID}).Err(); err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return models.Bookmark{}, false, ErrNotFound
+			return nil, false, ErrNotFound
 		}
-		return models.Bookmark{}, false, err
+		return nil, false, err
 	}
 	b := models.Bookmark{
 		ID:        utils.NewUUIDv7(),
@@ -58,11 +58,11 @@ func AddBookmark(ctx context.Context, userID, placeID string) (models.Bookmark, 
 	}
 	if _, err := db.Bookmarks().InsertOne(ctx, b); err != nil {
 		if mongo.IsDuplicateKeyError(err) {
-			return models.Bookmark{}, true, nil
+			return nil, true, nil
 		}
-		return models.Bookmark{}, false, err
+		return nil, false, err
 	}
-	return b, false, nil
+	return &b, false, nil
 }
 
 func RemoveBookmark(ctx context.Context, userID, placeID string) error {

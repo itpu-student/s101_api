@@ -14,9 +14,9 @@ import (
 
 // VerifyCode consumes a 6-digit OTP, upserts the user (first-time -> register,
 // returning user -> refresh username from TG), and issues a JWT.
-func VerifyCode(ctx context.Context, in VerifyCodeInput) (VerifyCodeOutput, error) {
+func VerifyCode(ctx context.Context, in VerifyCodeInput) (*VerifyCodeOutput, error) {
 	if len(in.Code) != 6 {
-		return VerifyCodeOutput{}, ErrBadInput
+		return nil, ErrBadInput
 	}
 
 	var otp models.OTPCode
@@ -27,9 +27,9 @@ func VerifyCode(ctx context.Context, in VerifyCodeInput) (VerifyCodeOutput, erro
 	}).Decode(&otp)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return VerifyCodeOutput{}, ErrNotFound
+			return nil, ErrNotFound
 		}
-		return VerifyCodeOutput{}, err
+		return nil, err
 	}
 	_, _ = db.OTPCodes().UpdateByID(ctx, otp.ID, bson.M{"$set": bson.M{"used": true}})
 
@@ -55,27 +55,27 @@ func VerifyCode(ctx context.Context, in VerifyCodeInput) (VerifyCodeOutput, erro
 			UpdatedAt:  now,
 		}
 		if _, err := db.Users().InsertOne(ctx, user); err != nil {
-			return VerifyCodeOutput{}, err
+			return nil, err
 		}
 	default:
-		return VerifyCodeOutput{}, err
+		return nil, err
 	}
 
 	if user.Blocked {
-		return VerifyCodeOutput{}, ErrForbidden
+		return nil, ErrForbidden
 	}
 
 	token, err := utils.IssueJWT(user.ID, utils.TypUser)
 	if err != nil {
-		return VerifyCodeOutput{}, err
+		return nil, err
 	}
-	return VerifyCodeOutput{Token: token, User: user.Public()}, nil
+	return &VerifyCodeOutput{Token: token, User: *user.Public()}, nil
 }
 
 // GetMe builds the /auth/me payload for the already-loaded user.
-func GetMe(ctx context.Context, u *models.User) (MeView, error) {
+func GetMe(ctx context.Context, u *models.User) (*MeView, error) {
 	count, _ := db.Places().CountDocuments(ctx, bson.M{"claimed_by": u.ID})
-	return MeView{
+	return &MeView{
 		ID:        u.ID,
 		Name:      u.Name,
 		Username:  u.Username,

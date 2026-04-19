@@ -13,7 +13,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-func ListReviewsAdmin(ctx context.Context, f ReviewFilter, paging utils.Paging) (Page[models.Review], error) {
+func ListReviewsAdmin(ctx context.Context, f ReviewFilter, paging utils.Paging) (*Page[models.Review], error) {
 	filter := bson.M{}
 	if f.PlaceID != nil {
 		filter["place_id"] = *f.PlaceID
@@ -22,11 +22,11 @@ func ListReviewsAdmin(ctx context.Context, f ReviewFilter, paging utils.Paging) 
 		options.Find().SetSort(bson.D{{Key: "created_at", Value: -1}}).
 			SetSkip(paging.Skip).SetLimit(int64(paging.Limit)))
 	if err != nil {
-		return Page[models.Review]{}, err
+		return nil, err
 	}
 	var items []models.Review
 	if err := cur.All(ctx, &items); err != nil {
-		return Page[models.Review]{}, err
+		return nil, err
 	}
 	total, _ := db.Reviews().CountDocuments(ctx, filter)
 	return NewPage(items, paging, total), nil
@@ -59,7 +59,7 @@ func AdminDeleteReview(ctx context.Context, id string) error {
 	return RecalcPlaceRating(ctx, r.PlaceID)
 }
 
-func ListPlaceReviews(ctx context.Context, placeID string, all bool, paging utils.Paging) (Page[models.Review], error) {
+func ListPlaceReviews(ctx context.Context, placeID string, all bool, paging utils.Paging) (*Page[models.Review], error) {
 	filter := bson.M{"place_id": placeID}
 	if !all {
 		filter["latest"] = true
@@ -68,23 +68,23 @@ func ListPlaceReviews(ctx context.Context, placeID string, all bool, paging util
 		options.Find().SetSort(bson.D{{Key: "created_at", Value: -1}}).
 			SetSkip(paging.Skip).SetLimit(int64(paging.Limit)))
 	if err != nil {
-		return Page[models.Review]{}, err
+		return nil, err
 	}
 	var items []models.Review
 	if err := cur.All(ctx, &items); err != nil {
-		return Page[models.Review]{}, err
+		return nil, err
 	}
 	total, _ := db.Reviews().CountDocuments(ctx, filter)
 	return NewPage(items, paging, total), nil
 }
 
-func CreateReview(ctx context.Context, userID string, placeIDOrSlug string, in CreateReviewInput) (models.Review, error) {
+func CreateReview(ctx context.Context, userID string, placeIDOrSlug string, in CreateReviewInput) (*models.Review, error) {
 	p, err := FindPlaceByIDOrSlug(ctx, placeIDOrSlug)
 	if err != nil {
-		return models.Review{}, err
+		return nil, err
 	}
 	if p.Status != models.StatusApproved {
-		return models.Review{}, ErrForbidden
+		return nil, ErrForbidden
 	}
 
 	// Step 1 — demote any existing latest review for (place, user).
@@ -92,7 +92,7 @@ func CreateReview(ctx context.Context, userID string, placeIDOrSlug string, in C
 		bson.M{"place_id": p.ID, "user_id": userID, "latest": true},
 		bson.M{"$set": bson.M{"latest": false}},
 	); err != nil {
-		return models.Review{}, err
+		return nil, err
 	}
 
 	now := time.Now().UTC()
@@ -109,13 +109,13 @@ func CreateReview(ctx context.Context, userID string, placeIDOrSlug string, in C
 		CreatedAt:     now,
 	}
 	if _, err := db.Reviews().InsertOne(ctx, r); err != nil {
-		return models.Review{}, err
+		return nil, err
 	}
 
 	if err := RecalcPlaceRating(ctx, p.ID); err != nil {
-		return models.Review{}, err
+		return nil, err
 	}
-	return r, nil
+	return &r, nil
 }
 
 func DeleteUserReview(ctx context.Context, userID string, reviewID string) error {

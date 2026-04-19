@@ -17,8 +17,8 @@ type Page[T any] struct {
 	Total int64 `json:"total"`
 }
 
-func NewPage[T any](items []T, paging utils.Paging, total int64) Page[T] {
-	return Page[T]{Items: items, Page: paging.Page, Limit: paging.Limit, Total: total}
+func NewPage[T any](items []T, paging utils.Paging, total int64) *Page[T] {
+	return &Page[T]{Items: items, Page: paging.Page, Limit: paging.Limit, Total: total}
 }
 
 // Ok is the shape for write-side acknowledgements. Optional fields echo back
@@ -86,8 +86,8 @@ type BookmarkAlreadyAck struct {
 	Already bool `json:"already"`
 }
 
-func NewAdminUserView(u models.User) AdminUserView {
-	return AdminUserView{
+func NewAdminUserView(u models.User) *AdminUserView {
+	return &AdminUserView{
 		ID:         u.ID,
 		Name:       u.Name,
 		Username:   u.Username,
@@ -104,6 +104,6 @@ type PlaceView struct {
 	IsOpen bool `json:"is_open"`
 }
 
-func NewPlaceView(p models.Place) PlaceView {
-	return PlaceView{Place: p, IsOpen: utils.IsOpen(p.WeeklyHours, time.Now())}
+func NewPlaceView(p models.Place) *PlaceView {
+	return &PlaceView{Place: p, IsOpen: utils.IsOpen(p.WeeklyHours, time.Now())}
 }

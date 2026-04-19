@@ -15,7 +15,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-func ListPlacesAdmin(ctx context.Context, f PlaceFilter, paging utils.Paging) (Page[models.Place], error) {
+func ListPlacesAdmin(ctx context.Context, f PlaceFilter, paging utils.Paging) (*Page[models.Place], error) {
 	filter := bson.M{}
 	if f.Status != nil {
 		filter["status"] = *f.Status
@@ -24,17 +24,17 @@ func ListPlacesAdmin(ctx context.Context, f PlaceFilter, paging utils.Paging) (P
 		options.Find().SetSort(bson.D{{Key: "created_at", Value: -1}}).
 			SetSkip(paging.Skip).SetLimit(int64(paging.Limit)))
 	if err != nil {
-		return Page[models.Place]{}, err
+		return nil, err
 	}
 	var items []models.Place
 	if err := cur.All(ctx, &items); err != nil {
-		return Page[models.Place]{}, err
+		return nil, err
 	}
 	total, _ := db.Places().CountDocuments(ctx, filter)
 	return NewPage(items, paging, total), nil
 }
 
-func ListPlaces(ctx context.Context, f PlaceFilter, paging utils.Paging) (Page[PlaceView], error) {
+func ListPlaces(ctx context.Context, f PlaceFilter, paging utils.Paging) (*Page[PlaceView], error) {
 	filter := bson.M{"status": models.StatusApproved}
 	if f.Status != nil {
 		filter["status"] = *f.Status
@@ -76,25 +76,25 @@ func ListPlaces(ctx context.Context, f PlaceFilter, paging utils.Paging) (Page[P
 
 	cur, err := db.Places().Find(ctx, filter, findOpts)
 	if err != nil {
-		return Page[PlaceView]{}, err
+		return nil, err
 	}
 	var places []models.Place
 	if err := cur.All(ctx, &places); err != nil {
-		return Page[PlaceView]{}, err
+		return nil, err
 	}
 	total, _ := db.Places().CountDocuments(ctx, filter)
 
 	items := make([]PlaceView, 0, len(places))
 	for _, p := range places {
-		items = append(items, NewPlaceView(p))
+		items = append(items, *NewPlaceView(p))
 	}
 	return NewPage(items, paging, total), nil
 }
 
-func GetPlaceView(ctx context.Context, idOrSlug string, viewerID *string, viewerTyp *string) (PlaceView, error) {
+func GetPlaceView(ctx context.Context, idOrSlug string, viewerID *string, viewerTyp *string) (*PlaceView, error) {
 	p, err := FindPlaceByIDOrSlug(ctx, idOrSlug)
 	if err != nil {
-		return PlaceView{}, err
+		return nil, err
 	}
 
 	if p.Status != models.StatusApproved {
@@ -108,16 +108,16 @@ func GetPlaceView(ctx context.Context, idOrSlug string, viewerID *string, viewer
 			}
 		}
 		if !allowed {
-			return PlaceView{}, ErrNotFound
+			return nil, ErrNotFound
 		}
 	}
-	return NewPlaceView(p), nil
+	return NewPlaceView(*p), nil
 }
 
-func CreatePlace(ctx context.Context, creatorID string, in CreatePlaceInput) (models.Place, error) {
+func CreatePlace(ctx context.Context, creatorID string, in CreatePlaceInput) (*models.Place, error) {
 	catID, ok := ResolveCategoryID(ctx, in.CategoryID)
 	if !ok {
-		return models.Place{}, ErrBadInput
+		return nil, ErrBadInput
 	}
 
 	atc, err := utils.ResolveSOATOID(ctx, in.Lat, in.Lon)
@@ -127,7 +127,7 @@ func CreatePlace(ctx context.Context, creatorID string, in CreatePlaceInput) (mo
 
 	slug, err := GenerateUniqueSlug(ctx, in.Name)
 	if err != nil {
-		return models.Place{}, err
+		return nil, err
 	}
 
 	now := time.Now().UTC()
@@ -151,19 +151,19 @@ func CreatePlace(ctx context.Context, creatorID string, in CreatePlaceInput) (mo
 		UpdatedAt:   now,
 	}
 	if _, err := db.Places().InsertOne(ctx, p); err != nil {
-		return models.Place{}, err
+		return nil, err
 	}
-	return p, nil
+	return &p, nil
 }
 
-func EditPlace(ctx context.Context, claimantID string, idOrSlug string, in EditPlaceInput) (PlaceView, error) {
+func EditPlace(ctx context.Context, claimantID string, idOrSlug string, in EditPlaceInput) (*PlaceView, error) {
 	p, err := FindPlaceByIDOrSlug(ctx, idOrSlug)
 	if err != nil {
-		return PlaceView{}, err
+		return nil, err
 	}
 
 	if p.ClaimedBy == nil || *p.ClaimedBy != claimantID {
-		return PlaceView{}, ErrForbidden
+		return nil, ErrForbidden
 	}
 
 	update := bson.M{"updated_at": time.Now().UTC()}
@@ -180,12 +180,16 @@ func EditPlace(ctx context.Context, claimantID string, idOrSlug string, in EditP
 		update["images"] = *in.Images
 	}
 	if _, err := db.Places().UpdateByID(ctx, p.ID, bson.M{"$set": update}); err != nil {
-		return PlaceView{}, err
+		return nil, err
 	}
 
 	// reload
-	p, _ = FindPlaceByIDOrSlug(ctx, p.ID)
-	return NewPlaceView(p), nil
+	p, err = FindPlaceByIDOrSlug(ctx, p.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewPlaceView(*p), nil
 }
 
 func SetPlaceStatus(ctx context.Context, id string, status models.Status) error {
@@ -268,7 +272,7 @@ func DeletePlaceCascade(ctx context.Context, id string) error {
 	}
 	return nil
 }
-func FindPlaceByIDOrSlug(ctx context.Context, idOrSlug string) (models.Place, error) {
+func FindPlaceByIDOrSlug(ctx context.Context, idOrSlug string) (*models.Place, error) {
 	var p models.Place
 	err := db.Places().FindOne(ctx, bson.M{"$or": bson.A{
 		bson.M{"_id": idOrSlug},
@@ -276,11 +280,11 @@ func FindPlaceByIDOrSlug(ctx context.Context, idOrSlug string) (models.Place, er
 	}}).Decode(&p)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return models.Place{}, ErrNotFound
+			return nil, ErrNotFound
 		}
-		return models.Place{}, err
+		return nil, err
 	}
-	return p, nil
+	return &p, nil
 }
 
 // GenerateUniqueSlug appends -2, -3, ... until the slug is unique.

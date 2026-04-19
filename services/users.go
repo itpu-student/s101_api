@@ -13,22 +13,22 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-func ListUsersAdmin(ctx context.Context, paging utils.Paging) (Page[AdminUserView], error) {
+func ListUsersAdmin(ctx context.Context, paging utils.Paging) (*Page[AdminUserView], error) {
 	filter := bson.M{}
 	cur, err := db.Users().Find(ctx, filter,
 		options.Find().SetSort(bson.D{{Key: "created_at", Value: -1}}).
 			SetSkip(paging.Skip).SetLimit(int64(paging.Limit)))
 	if err != nil {
-		return Page[AdminUserView]{}, err
+		return nil, err
 	}
 	var raw []models.User
 	if err := cur.All(ctx, &raw); err != nil {
-		return Page[AdminUserView]{}, err
+		return nil, err
 	}
 	total, _ := db.Users().CountDocuments(ctx, filter)
 	items := make([]AdminUserView, 0, len(raw))
 	for _, u := range raw {
-		items = append(items, NewAdminUserView(u))
+		items = append(items, *NewAdminUserView(u))
 	}
 	return NewPage(items, paging, total), nil
 }
@@ -47,22 +47,22 @@ func SetUserBlocked(ctx context.Context, id string, blocked bool) error {
 	return nil
 }
 
-func GetPublicUserView(ctx context.Context, id string) (PublicUserView, error) {
+func GetPublicUserView(ctx context.Context, id string) (*PublicUserView, error) {
 	var u models.User
 	if err := db.Users().FindOne(ctx, bson.M{"_id": id}).Decode(&u); err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return PublicUserView{}, ErrNotFound
+			return nil, ErrNotFound
 		}
-		return PublicUserView{}, err
+		return nil, err
 	}
 	reviewCount, _ := db.Reviews().CountDocuments(ctx, bson.M{"user_id": u.ID, "latest": true})
-	return PublicUserView{
-		User:        u.Public(),
+	return &PublicUserView{
+		User:        *u.Public(),
 		ReviewCount: reviewCount,
 	}, nil
 }
 
-func UpdateMe(ctx context.Context, id string, in UpdateMeInput) (models.PublicUser, error) {
+func UpdateMe(ctx context.Context, id string, in UpdateMeInput) (*models.PublicUser, error) {
 	update := bson.M{"updated_at": time.Now().UTC()}
 	if in.Name != nil {
 		update["name"] = *in.Name
@@ -72,13 +72,17 @@ func UpdateMe(ctx context.Context, id string, in UpdateMeInput) (models.PublicUs
 	}
 	res, err := db.Users().UpdateByID(ctx, id, bson.M{"$set": update})
 	if err != nil {
-		return models.PublicUser{}, err
+		return nil, err
 	}
 	if res.MatchedCount == 0 {
-		return models.PublicUser{}, ErrNotFound
+		return nil, ErrNotFound
 	}
 	var u models.User
-	_ = db.Users().FindOne(ctx, bson.M{"_id": id}).Decode(&u)
+	err = db.Users().FindOne(ctx, bson.M{"_id": id}).Decode(&u)
+	if err != nil {
+		return nil, err
+	}
+
 	return u.Public(), nil
 }
 
@@ -98,17 +102,17 @@ func DeleteUserCascade(ctx context.Context, id string) error {
 	return nil
 }
 
-func ListUserReviews(ctx context.Context, userID string, paging utils.Paging) (Page[models.Review], error) {
+func ListUserReviews(ctx context.Context, userID string, paging utils.Paging) (*Page[models.Review], error) {
 	filter := bson.M{"user_id": userID, "latest": true}
 	cur, err := db.Reviews().Find(ctx, filter,
 		options.Find().SetSort(bson.D{{Key: "created_at", Value: -1}}).
 			SetSkip(paging.Skip).SetLimit(int64(paging.Limit)))
 	if err != nil {
-		return Page[models.Review]{}, err
+		return nil, err
 	}
 	var items []models.Review
 	if err := cur.All(ctx, &items); err != nil {
-		return Page[models.Review]{}, err
+		return nil, err
 	}
 	total, _ := db.Reviews().CountDocuments(ctx, filter)
 	return NewPage(items, paging, total), nil
