@@ -39,9 +39,10 @@ func AddBookmark(c *gin.Context) {
 	}
 
 	if already {
-		utils.OK(c, services.BookmarkAlreadyAck{Ok: true, Already: true})
+		c.Status(208) // http.StatusAlreadyReported
 		return
 	}
+
 
 	utils.Created(c, b)
 }

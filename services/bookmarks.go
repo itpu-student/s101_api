@@ -13,8 +13,9 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-func ListBookmarks(ctx context.Context, userID string, paging utils.Paging) (*BookmarksView, error) {
-	cur, err := db.Bookmarks().Find(ctx, bson.M{"user_id": userID},
+func ListBookmarks(ctx context.Context, userID string, paging utils.Paging) (*Page[BookmarkView], error) {
+	filter := bson.M{"user_id": userID}
+	cur, err := db.Bookmarks().Find(ctx, filter,
 		options.Find().SetSort(bson.D{{Key: "created_at", Value: -1}}).
 			SetSkip(paging.Skip).SetLimit(int64(paging.Limit)))
 	if err != nil {
@@ -29,19 +30,36 @@ func ListBookmarks(ctx context.Context, userID string, paging utils.Paging) (*Bo
 	for _, b := range bms {
 		ids = append(ids, b.PlaceID)
 	}
-	var places []models.Place
+	placeMap := make(map[string]PlaceView)
 	if len(ids) > 0 {
 		pcur, err := db.Places().Find(ctx, bson.M{"_id": bson.M{"$in": ids}})
 		if err != nil {
 			return nil, err
 		}
-		err = pcur.All(ctx, &places)
+		var rawPlaces []models.Place
+		err = pcur.All(ctx, &rawPlaces)
 		if err != nil {
 			return nil, err
 		}
+		for _, p := range rawPlaces {
+			placeMap[p.ID] = *NewPlaceView(p)
+		}
 	}
-	return &BookmarksView{Bookmarks: bms, Places: places}, nil
+
+	items := make([]BookmarkView, 0, len(bms))
+	for _, b := range bms {
+		bv := BookmarkView{Bookmark: b}
+		if p, ok := placeMap[b.PlaceID]; ok {
+			bv.Place = &p
+		}
+		items = append(items, bv)
+	}
+
+	total, _ := db.Bookmarks().CountDocuments(ctx, filter)
+	return NewPage(items, paging, total), nil
 }
+
+
 
 // AddBookmark is idempotent. The bool return is true when the row already
 // existed (duplicate key); handler decides between 201 and 200 on that.

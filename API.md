@@ -351,7 +351,7 @@ Update own profile.
   "avatar_key": "<file-key>"
 }
 ```
-- `username`: lowercased + trimmed; must match `^[a-zA-Z0-9_]+$`. Must be unique.
+- `username`: lowercased + trimmed; must match `^[a-z0-9_]+$`. Must be unique.
 
 **200** → `PublicUser`.
 
@@ -397,7 +397,7 @@ List approved places.
 | Param      | Description                                                          |
 |------------|----------------------------------------------------------------------|
 | `query`    | Full-text search on name/description (Mongo `$text`).                |
-| `category` | Category UUID or slug. Unknown → empty list.                         |
+| `category` | Category UUID. Unknown → empty list.                         |
 | `sort`     | `top` (default), `recent`, `nearest`. `nearest` needs `near`.        |
 | `near`     | `lat,lon`. When set, sorts by distance even if `sort=top`.           |
 | `page`     | See pagination.                                                      |
@@ -528,18 +528,33 @@ Delete own review. If was latest, next-most-recent is auto-promoted; aggregates 
 All require **RequireUser**.
 
 ### `GET /api/bookmarks`
-Bookmarks + referenced places in one call. **Query:** `page`, `limit` (paginates bookmarks).
+Bookmarks with referenced places nested inside. **Query:** `page`, `limit`.
 
-**200**
+**200** → `Page<BookmarkView>`.
+
 ```json
-{ "bookmarks": [ Bookmark, ... ], "places": [ Place, ... ] }
+{
+  "items": [
+    {
+      "id": "uuid",
+      "user_id": "uuid",
+      "place_id": "uuid",
+      "created_at": "...",
+      "place": { "id": "uuid", "name": "...", "is_open": true, ... }
+    }
+  ],
+  "page": 1,
+  "limit": 20,
+  "total": 1
+}
 ```
-> Bookmarks sorted `created_at` desc. `places` unordered — match by `place_id`.
+> Bookmarks sorted `created_at` desc.
 
 ---
 
 ### `POST /api/bookmarks/:placeId`
-**201** → `Bookmark`. If already bookmarked: **200** `{ "ok": true, "already": true }`.
+**201 Created** → `Bookmark`.
+**208 Already Reported** → empty body (if already bookmarked).
 
 **Errors:** `404 not_found`.
 

@@ -72,19 +72,14 @@ type PublicUserView struct {
 	ReviewCount int64             `json:"review_count"`
 }
 
-// BookmarksView groups a user's bookmarks with the referenced places so the
-// client can render cards without a second fetch.
-type BookmarksView struct {
-	Bookmarks []models.Bookmark `json:"bookmarks"`
-	Places    []models.Place    `json:"places"`
+type BookmarkView struct {
+	models.Bookmark
+	Place *PlaceView `json:"place,omitempty"`
 }
 
-// BookmarkAlreadyAck is the 200 response for re-bookmarking a place — the new
-// bookmark path returns the Bookmark itself with 201 instead.
-type BookmarkAlreadyAck struct {
-	Ok      bool `json:"ok"`
-	Already bool `json:"already"`
-}
+// BookmarksView groups a user's bookmarks with the referenced places nested
+// inside each bookmark object.
+
 
 func NewAdminUserView(u models.User) *AdminUserView {
 	return &AdminUserView{
