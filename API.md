@@ -1,124 +1,111 @@
 # API Reference — s101_api
 
-This document describes every HTTP endpoint exposed by the backend. Use it as a single source of truth when wiring the frontend (`buyelp_web`) to the API.
+Single source of truth for frontend wiring. Be precise — the backend changes fast.
 
 ---
 
 ## 1. Conventions
 
 ### Base URL
-All endpoints (except `/healthz`) are mounted under `/api`.
+All endpoints (except `/healthz` and `/static/*`) are mounted under `/api`.
 
 ```
 {BASE_URL}/api/...
 ```
 
 ### Content type
-- All request bodies are JSON: `Content-Type: application/json`.
-- All responses are JSON unless documented otherwise (`204 No Content` returns an empty body).
+- Request bodies: JSON (`Content-Type: application/json`), except `POST /api/files/upload` which is `multipart/form-data`.
+- Responses: JSON. `204 No Content` → empty body.
 
 ### Authentication
-Two kinds of bearer tokens, both JWT (HS256), sent in the `Authorization` header:
+Bearer JWT (HS256) in `Authorization: Bearer <jwt>`.
 
-```
-Authorization: Bearer <jwt>
-```
+Token `typ` claim:
+- `"user"` — from `POST /api/auth/verify-code`
+- `"admin"` — from `POST /api/admin/auth/login`
 
-The token's `typ` claim is either:
-- `"user"` — issued via `POST /api/auth/verify-code`
-- `"admin"` — issued via `POST /api/admin/auth/login`
-
-Three middleware modes are used by routes:
-- **Public** — no auth required.
-- **RequireUser** — must be a valid user JWT and the user must not be blocked.
-- **RequireAdmin** — must be a valid admin JWT.
-- **OptionalAuth** — used only on `GET /api/places/:id`. Token is parsed if present, but the request is not rejected when missing.
+Middleware modes:
+- **Public** — no auth.
+- **RequireUser** — valid user JWT, user not blocked.
+- **RequireAdmin** — valid admin JWT.
+- **OptionalAuth** — only on `GET /api/places/:id`. Parses token if present.
 
 ### Error format
-Any 4xx/5xx response uses this shape:
+Every 4xx/5xx:
 
 ```json
-{
-  "error": "bad_request",
-  "message": "human-readable detail"
-}
+{ "error": "bad_request", "message": "human-readable detail" }
 ```
 
-`error` codes used by the backend:
-
-| HTTP | `error` code      |
-|------|-------------------|
-| 400  | `bad_request`     |
-| 401  | `unauthorized`    |
-| 403  | `forbidden`       |
-| 404  | `not_found`       |
-| 409  | `conflict`        |
-| 500  | `internal_error`  |
+| HTTP | `error` code     |
+|------|------------------|
+| 400  | `bad_request`    |
+| 401  | `unauthorized`   |
+| 403  | `forbidden`      |
+| 404  | `not_found`      |
+| 409  | `conflict`       |
+| 500  | `internal_error` |
 
 ### Pagination
-Endpoints that return lists accept:
 
-| Query   | Default | Max | Notes                       |
-|---------|---------|-----|-----------------------------|
-| `page`  | `1`     | —   | 1-based page number.        |
-| `limit` | `20`    | 100 | Capped server-side at 100.  |
+| Query   | Default | Max | Notes                 |
+|---------|---------|-----|-----------------------|
+| `page`  | `1`     | —   | 1-based.              |
+| `limit` | `20`    | 100 | Capped server-side.   |
 
-Paginated responses use this envelope:
-
+Envelope:
 ```json
-{
-  "items": [ ... ],
-  "page": 1,
-  "limit": 20,
-  "total": 137
-}
+{ "items": [ ... ], "page": 1, "limit": 20, "total": 137 }
 ```
 
 ### Status enum (places & claims)
-The backend uses a numeric `status` field in two places:
-
 | Value | Meaning   |
 |-------|-----------|
 | `0`   | Pending   |
 | `10`  | Approved  |
 | `-10` | Rejected  |
 
-### Internationalized text (`I18nText`)
-Wherever you see a "translated" field (e.g. `address`, `description`, category `name`/`desc`), the JSON shape is:
-
+### I18nText
 ```json
-{ "en": "English text", "uz": "O'zbek tili" }
+{ "en": "English", "uz": "O'zbek" }
 ```
 
 ### Geo
-- `lat` / `lon` are float degrees (WGS84).
-- A place also stores a GeoJSON `location` field used for `$nearSphere` queries: `{ "type": "Point", "coordinates": [lon, lat] }`.
+- `lat` / `lon` float degrees (WGS84).
+- Place also stores GeoJSON `location`: `{ "type": "Point", "coordinates": [lon, lat] }`.
+
+### Images & avatars (file keys)
+User avatars and place/review images are **file keys** (not full URLs), e.g. `"a8f3...e21.jpg"`.
+
+To upload: call `POST /api/files/upload` (§12). It returns `{ file_id, key, url, usage }`.
+- Save `key` into `avatar_key` (user) or append to `images` (place/review).
+- To display: prepend the static base → `{BASE_URL}/static/{key}`.
 
 ---
 
 ## 2. Core Models
 
-### User (private — only returned to `/auth/me` & admins)
+### User (private — `/auth/me` & admin)
 ```json
 {
   "id": "uuid",
   "name": "string",
   "username": "string|null",
-  "phone": "string",
-  "avatar_url": "string",
+  "phone": "+998...",
+  "avatar_key": "string|null",
   "blocked": false,
   "created_at": "2026-04-17T10:00:00Z",
   "owns_place": true
 }
 ```
 
-### PublicUser (returned to public endpoints)
+### PublicUser (public endpoints)
 ```json
 {
   "id": "uuid",
   "name": "string",
   "username": "string|null",
-  "avatar_url": "string",
+  "avatar_key": "string|null",
   "created_at": "2026-04-17T10:00:00Z"
 }
 ```
@@ -137,7 +124,7 @@ Wherever you see a "translated" field (e.g. `address`, `description`, category `
   "lat": 41.31,
   "lon": 69.28,
   "location": { "type": "Point", "coordinates": [69.28, 41.31] },
-  "images": ["https://..."],
+  "images": ["<file-key>"],
   "weekly_hours": {
     "mon": [{ "open": "09:00", "close": "22:00" }],
     "tue": [{ "open": "09:00", "close": "22:00" }],
@@ -153,7 +140,7 @@ Wherever you see a "translated" field (e.g. `address`, `description`, category `
   "is_open": true
 }
 ```
-> `is_open` is computed at response time from `weekly_hours`. It is present on `GET /api/places` and `GET /api/places/:id` but **not** on admin or write responses.
+> `is_open` computed from `weekly_hours`. Present on `GET /api/places` and `GET /api/places/:id`; **not** on admin/write responses.
 
 ### Category
 ```json
@@ -177,12 +164,12 @@ Wherever you see a "translated" field (e.g. `address`, `description`, category `
   "price_rating": 4,
   "quality_rating": 5,
   "text": "Great place",
-  "images": ["https://..."],
+  "images": ["<file-key>"],
   "latest": true,
   "created_at": "2026-04-17T10:00:00Z"
 }
 ```
-> Only the user's *latest* review per place participates in `avg_rating` / `review_count`. History is preserved (`latest=false`).
+> Only user's *latest* review per place counts toward aggregates. History kept (`latest=false`).
 
 ### Bookmark
 ```json
@@ -224,27 +211,22 @@ Wherever you see a "translated" field (e.g. `address`, `description`, category `
 ## 3. Health
 
 ### `GET /healthz`
-Liveness probe. **Public.**
-
-**200**
-```json
-{ "ok": true }
-```
+**Public.** `200 → { "ok": true }`.
 
 ---
 
 ## 4. Public Auth (Telegram OTP)
 
-The user requests a code through the Telegram bot. They paste that 6-digit code into the web app, which exchanges it for a JWT.
+User gets 6-digit code via Telegram bot, pastes it in web, exchanges for JWT.
 
 ### `POST /api/auth/verify-code`
-Exchange a 6-digit OTP for a JWT. Creates the user on first login.
+Exchange OTP for JWT. Creates user on first login.
 
 **Request**
 ```json
 { "code": "123456" }
 ```
-- `code` (string, required, exactly 6 chars).
+- `code`: required, exactly 6 chars.
 
 **200**
 ```json
@@ -254,20 +236,21 @@ Exchange a 6-digit OTP for a JWT. Creates the user on first login.
     "id": "uuid",
     "name": "string",
     "username": "string|null",
-    "avatar_url": "",
+    "avatar_key": null,
     "created_at": "..."
   }
 }
 ```
 
 **Errors**
-- `401 unauthorized` — code is invalid, expired, or already used.
+- `400 bad_request` — `code must be 6 digits`.
+- `401 unauthorized` — `invalid or expired code`.
 - `403 forbidden` — `account is blocked`.
 
 ---
 
 ### `GET /api/auth/me`
-Returns the authenticated user's full private profile.
+Auth user's full profile.
 
 **Auth:** RequireUser.
 
@@ -278,13 +261,13 @@ Returns the authenticated user's full private profile.
   "name": "string",
   "username": "string|null",
   "phone": "+998...",
-  "avatar_url": "string",
+  "avatar_key": "string|null",
   "created_at": "...",
   "owns_place": true,
   "blocked": false
 }
 ```
-> `owns_place` is `true` if the user has at least one place where `claimed_by == user.id`.
+> `owns_place` = true iff user has ≥1 place with `claimed_by == user.id`.
 
 ---
 
@@ -311,22 +294,19 @@ Returns the authenticated user's full private profile.
 }
 ```
 
-**Errors**
-- `401 unauthorized` — invalid credentials.
+**Errors:** `401 unauthorized` — invalid credentials.
 
 ---
 
 ### `GET /api/admin/auth/me`
-Return current admin profile. **Auth:** RequireAdmin.
-
-**200** → `Admin`
+**Auth:** RequireAdmin. **200** → `Admin`.
 
 ---
 
-## 6. Users (Public Profiles & Self-Service)
+## 6. Users
 
 ### `GET /api/users/:id`
-Public profile of a user (no phone, no telegram id).
+Public profile (no phone, no telegram).
 
 **Auth:** Public.
 
@@ -337,34 +317,24 @@ Public profile of a user (no phone, no telegram id).
     "id": "uuid",
     "name": "string",
     "username": "string|null",
-    "avatar_url": "string",
+    "avatar_key": "string|null",
     "created_at": "..."
   },
   "review_count": 12
 }
 ```
-> `review_count` only counts the user's *latest* reviews.
+> `review_count` counts only `latest=true` reviews.
 
 **Errors:** `404 not_found`.
 
 ---
 
 ### `GET /api/users/:id/reviews`
-List of a user's latest reviews. Paginated.
+User's latest reviews, paginated.
 
-**Auth:** Public.
+**Auth:** Public. **Query:** `page`, `limit`.
 
-**Query:** `page`, `limit`.
-
-**200**
-```json
-{
-  "items": [ Review, ... ],
-  "page": 1,
-  "limit": 20,
-  "total": 12
-}
-```
+**200** → `Page<Review>`.
 
 ---
 
@@ -373,28 +343,34 @@ Update own profile.
 
 **Auth:** RequireUser.
 
-**Request** (all fields optional)
+**Request** (all optional; sent fields only)
 ```json
 {
   "name": "New name",
-  "avatar_url": "https://..."
+  "username": "new_handle",
+  "avatar_key": "<file-key>"
 }
 ```
+- `username`: lowercased + trimmed; must match `^[a-zA-Z0-9_]+$`. Must be unique.
 
-**200** → `PublicUser`
+**200** → `PublicUser`.
+
+**Errors**
+- `400 bad_request` — invalid body/username format.
+- `409 conflict` — username taken.
+- `404 not_found`.
 
 ---
 
 ### `DELETE /api/users/me`
-Hard-delete the current user.
+Hard-delete current user.
 
 **Auth:** RequireUser.
 
 Side effects:
-- Reviews authored by the user are kept but their `user_id` becomes `null`.
-- Places created by the user keep their record but `created_by` becomes `null`.
-- If the user had `claimed_by` ownership, it is unset.
-- Bookmarks and pending claim requests are deleted.
+- Reviews kept but `user_id → null`.
+- Places kept, `created_by → null`. `claimed_by` unset if matched.
+- Bookmarks and pending claims deleted.
 
 **204 No Content.**
 
@@ -403,11 +379,9 @@ Side effects:
 ## 7. Categories
 
 ### `GET /api/categories`
-List every category, sorted by slug.
+List all, sorted by slug.
 
-**Auth:** Public.
-
-**200** → `[ Category, ... ]`
+**Auth:** Public. **200** → `[ Category, ... ]`.
 
 ---
 
@@ -420,50 +394,37 @@ List approved places.
 
 **Query**
 
-| Param      | Description                                                                 |
-|------------|-----------------------------------------------------------------------------|
-| `query`    | Full-text search across name/description (uses Mongo `$text`).              |
-| `category` | Category UUID **or** slug. If unknown, returns an empty list.               |
-| `sort`     | `top` (default), `recent`, `nearest`. `nearest` requires `near=lat,lon`.    |
-| `near`     | `lat,lon` pair. When set, results are sorted by distance even for `sort=top`. |
-| `page`     | See pagination.                                                             |
-| `limit`    | See pagination.                                                             |
+| Param      | Description                                                          |
+|------------|----------------------------------------------------------------------|
+| `query`    | Full-text search on name/description (Mongo `$text`).                |
+| `category` | Category UUID or slug. Unknown → empty list.                         |
+| `sort`     | `top` (default), `recent`, `nearest`. `nearest` needs `near`.        |
+| `near`     | `lat,lon`. When set, sorts by distance even if `sort=top`.           |
+| `page`     | See pagination.                                                      |
+| `limit`    | See pagination.                                                      |
 
-Sort behavior:
-- `top` — `avg_rating` desc, then `review_count` desc.
+Sort:
+- `top` — `avg_rating` desc, `review_count` desc.
 - `recent` — `created_at` desc.
-- `nearest` — geospatial ascending distance from `near`.
+- `nearest` — geo ascending from `near`.
 
-**200**
-```json
-{
-  "items": [ Place (with is_open), ... ],
-  "page": 1,
-  "limit": 20,
-  "total": 137
-}
-```
+**200** → `Page<Place + is_open>`.
 
-**Errors:** `400 bad_request` if `sort=nearest` is used without `near`.
+**Errors:** `400 bad_request` — `sort=nearest` without `near`.
 
 ---
 
 ### `GET /api/places/:id`
-Get one place. `:id` may be its UUID **or** its slug.
+`:id` = UUID or slug.
 
-**Auth:** OptionalAuth. Pending/rejected places are visible only to:
-- the admin (any admin token), or
-- the place's `created_by` user, or
-- the place's `claimed_by` user.
-
-Otherwise, they appear as `404 not_found`.
+**Auth:** OptionalAuth. Non-approved places visible only to: any admin, `created_by`, or `claimed_by`. Otherwise `404`.
 
 **200** → `Place` (with `is_open`).
 
 ---
 
 ### `POST /api/places/create`
-Create a new place. The created place starts in `status=0` (pending).
+Create place (starts `status=0` pending).
 
 **Auth:** RequireUser.
 
@@ -477,10 +438,8 @@ Create a new place. The created place starts in `status=0` (pending).
   "description": { "en": "...", "uz": "..." },
   "lat": 41.31,
   "lon": 69.28,
-  "images": ["https://..."],
-  "weekly_hours": {
-    "mon": [{ "open": "09:00", "close": "22:00" }]
-  }
+  "images": ["<file-key>"],
+  "weekly_hours": { "mon": [{ "open": "09:00", "close": "22:00" }] }
 }
 ```
 Required: `name`, `category_id`, `address`, `lat`, `lon`.
@@ -488,25 +447,23 @@ Required: `name`, `category_id`, `address`, `lat`, `lon`.
 **201** → `Place`.
 
 **Errors**
-- `400 bad_request` — `invalid category` or invalid body.
+- `400 bad_request` — `invalid category` / bad body.
 - `500 internal_error` — slug collision overflow.
 
 ---
 
 ### `PUT /api/places/:id`
-Edit a place. **Only the `claimed_by` user may call this.**
-
-`:id` accepts UUID or slug.
+Edit. **Only `claimed_by` may call.** `:id` = UUID or slug.
 
 **Auth:** RequireUser.
 
-**Request** (all optional, only sent fields are updated)
+**Request** (all optional)
 ```json
 {
   "phone": "+998...",
   "description": { "en": "...", "uz": "..." },
   "weekly_hours": { ... },
-  "images": ["https://..."]
+  "images": ["<file-key>"]
 }
 ```
 
@@ -521,32 +478,18 @@ Edit a place. **Only the `claimed_by` user may call this.**
 ## 9. Reviews
 
 ### `GET /api/places/:id/reviews`
-List reviews for a place. Paginated. By default returns only `latest=true` reviews.
+Paginated. Default `latest=true` only. `:id` = UUID or slug.
 
-`:id` accepts UUID or slug.
+**Auth:** Public. **Query:** `page`, `limit`, `all=true` for history.
 
-**Auth:** Public.
-
-**Query:** `page`, `limit`, optional `all=true` to include the full history (older revisions of users' reviews).
-
-**200**
-```json
-{
-  "items": [ Review, ... ],
-  "page": 1,
-  "limit": 20,
-  "total": 23
-}
-```
+**200** → `Page<Review>`.
 
 ---
 
 ### `POST /api/places/:id/reviews`
-Create or replace the user's review for the given place.
+Create or replace user's review. Prior latest demoted to `latest=false`.
 
-The backend keeps an append-only history: posting a new review demotes the previous one to `latest=false` and inserts a new `latest=true` row. Only the latest review for `(place, user)` counts toward ratings.
-
-**Auth:** RequireUser. Place must be `status=10` (approved).
+**Auth:** RequireUser. Place must be `status=10`.
 
 **Request**
 ```json
@@ -554,146 +497,149 @@ The backend keeps an append-only history: posting a new review demotes the previ
   "star_rating": 5,
   "price_rating": 4,
   "quality_rating": 5,
-  "text": "Great service",
-  "images": ["https://..."]
+  "text": "Great",
+  "images": ["<file-key>"]
 }
 ```
-- `star_rating`: required, integer 1–5.
-- `price_rating`, `quality_rating`: optional, integer 1–5 each.
+- `star_rating`: required, int 1–5.
+- `price_rating`, `quality_rating`: optional, int 1–5.
 
 **201** → `Review`.
 
 **Errors**
 - `403 forbidden` — `cannot review a non-approved place`.
-- `404 not_found` — place missing.
-
----
-
-### `DELETE /api/reviews/:id`
-Delete one of your own reviews.
-
-**Auth:** RequireUser (must be the author).
-
-If the deleted review was the latest one, the next-most-recent review by the same user for the same place is auto-promoted to `latest=true`. The place's aggregates are recomputed.
-
-**204 No Content.**
-
-**Errors**
-- `403 forbidden` — `not your review`.
 - `404 not_found`.
 
 ---
 
-## 10. Bookmarks (User-Private)
+### `DELETE /api/reviews/:id`
+Delete own review. If was latest, next-most-recent is auto-promoted; aggregates recomputed.
 
-All bookmark endpoints require **RequireUser**.
+**Auth:** RequireUser (author).
+
+**204 No Content.**
+
+**Errors:** `403 forbidden`, `404 not_found`.
+
+---
+
+## 10. Bookmarks (user-private)
+
+All require **RequireUser**.
 
 ### `GET /api/bookmarks`
-List the user's bookmarks **and** the corresponding places in one call.
-
-**Query:** `page`, `limit` (paginates the bookmarks).
+Bookmarks + referenced places in one call. **Query:** `page`, `limit` (paginates bookmarks).
 
 **200**
 ```json
-{
-  "bookmarks": [ Bookmark, ... ],
-  "places": [ Place, ... ]
-}
+{ "bookmarks": [ Bookmark, ... ], "places": [ Place, ... ] }
 ```
-> Bookmarks are sorted by `created_at` desc. The `places` array contains the `Place` records referenced by those bookmarks (no guaranteed order — match by `place_id`).
+> Bookmarks sorted `created_at` desc. `places` unordered — match by `place_id`.
 
 ---
 
 ### `POST /api/bookmarks/:placeId`
-Bookmark a place.
+**201** → `Bookmark`. If already bookmarked: **200** `{ "ok": true, "already": true }`.
 
-**201** → `Bookmark`.
-
-If the user already bookmarked it:
-**200**
-```json
-{ "ok": true, "already": true }
-```
-
-**Errors:** `404 not_found` if the place doesn't exist.
+**Errors:** `404 not_found`.
 
 ---
 
 ### `DELETE /api/bookmarks/:placeId`
-Remove a bookmark.
-
 **204 No Content.**
 
 ---
 
 ## 11. Claim Requests
 
-A user can claim ownership of an *existing* place. Approval flips the place's `claimed_by`. After that, only the claimant can edit the place via `PUT /api/places/:id`.
+Claim ownership of existing place. On approve, place's `claimed_by` flips; claimant can then edit via `PUT /api/places/:id`.
 
 ### `POST /api/claims`
-Submit a new claim.
-
 **Auth:** RequireUser.
 
 **Request**
 ```json
-{
-  "place_id": "uuid",
-  "phone": "+998...",
-  "note": "optional contact note"
-}
+{ "place_id": "uuid", "phone": "+998...", "note": "optional" }
 ```
 
-**201** → `ClaimRequest` (status = 0).
+**201** → `ClaimRequest` (status=0).
 
 **Errors**
-- `404 not_found` — place missing.
-- `409 conflict` — `this place is already claimed` or `you already have a pending claim for this place`.
+- `404 not_found`.
+- `409 conflict` — `this place is already claimed` / `you already have a pending claim for this place`.
 
 ---
 
 ### `GET /api/claims/mine`
-List the current user's claim requests, newest first.
+User's claims, newest first. Not paginated.
 
-**Auth:** RequireUser.
-
-**200** → `[ ClaimRequest, ... ]` (not paginated).
+**Auth:** RequireUser. **200** → `[ ClaimRequest, ... ]`.
 
 ---
 
-## 12. Admin Endpoints
+## 12. Files
 
-All endpoints below are mounted under `/api/admin` and require **RequireAdmin**.
+### `POST /api/files/upload`
+Upload an image/asset.
+
+**Auth:** RequireUser. **Content-Type:** `multipart/form-data`.
+
+**Form fields**
+| Field   | Type   | Notes                                    |
+|---------|--------|------------------------------------------|
+| `file`  | file   | required.                                |
+| `usage` | string | required. One of `avatar`, `review`, `place`. |
+
+**201**
+```json
+{
+  "file_id": "uuid",
+  "key": "uuid.jpg",
+  "url": "/static/uuid.jpg",
+  "usage": "avatar"
+}
+```
+
+Use `key`:
+- as `avatar_key` in `PUT /api/users/me`, or
+- in `images[]` for place/review payloads.
+
+Display via `{BASE_URL}{url}` (i.e. `{BASE_URL}/static/{key}`).
+
+**Errors**
+- `400 bad_request` — `file is required` / `invalid usage`.
+- `500 internal_error` — upload failed.
+
+---
+
+### `GET /static/:key`
+Serves uploaded files. **Public.** Static passthrough (not under `/api`).
+
+---
+
+## 13. Admin Endpoints
+
+All under `/api/admin`, **RequireAdmin**.
 
 ### Places
 
 #### `GET /api/admin/places`
-List places (any status). Paginated.
+List any status. Paginated.
 
-**Query**
-- `status` — optional, one of `0`, `10`, `-10`. Other values are ignored (no filter).
-- `page`, `limit`.
+**Query:** `status` (`0`, `10`, `-10`; other → no filter), `page`, `limit`.
 
-**200**
-```json
-{ "items": [ Place, ... ], "page": 1, "limit": 20, "total": 42 }
-```
+**200** → `Page<Place>`.
 
 ---
 
 #### `PUT /api/admin/places/:id/status`
-Change a place's moderation status.
 
 **Request**
 ```json
 { "status": 10 }
 ```
-- `status`: required, one of `0`, `10`, `-10`.
 
-**200**
-```json
-{ "ok": true }
-```
+**200** → `{ "ok": true, "status": 10 }`.
 
 **Errors**
 - `400 bad_request` — `status must be 0, 10, or -10`.
@@ -702,7 +648,7 @@ Change a place's moderation status.
 ---
 
 #### `PUT /api/admin/places/:id`
-Admin can edit any field. All fields optional. Sending both `lat` and `lon` updates the geo `location` too.
+Edit any field; all optional. Sending both `lat` and `lon` updates geo `location`.
 
 **Request**
 ```json
@@ -714,15 +660,12 @@ Admin can edit any field. All fields optional. Sending both `lat` and `lon` upda
   "description": { "en": "...", "uz": "..." },
   "lat": 41.31,
   "lon": 69.28,
-  "images": ["..."],
+  "images": ["<file-key>"],
   "weekly_hours": { ... }
 }
 ```
 
-**200**
-```json
-{ "ok": true }
-```
+**200** → `{ "ok": true }`.
 
 **Errors**
 - `400 bad_request` — `invalid category`.
@@ -731,41 +674,32 @@ Admin can edit any field. All fields optional. Sending both `lat` and `lon` upda
 ---
 
 #### `DELETE /api/admin/places/:id`
-Hard-delete the place plus its reviews, bookmarks, and claim requests.
+Hard-deletes place + its reviews, bookmarks, claims.
 
-**204 No Content.**
-
-**Errors:** `404 not_found`.
+**204 No Content.** **Errors:** `404 not_found`.
 
 ---
 
 ### Reviews
 
 #### `GET /api/admin/reviews`
-List reviews. Paginated.
+**Query:** `place_id` (optional), `page`, `limit`.
 
-**Query:** `place_id` (optional filter), `page`, `limit`.
-
-**200**
-```json
-{ "items": [ Review, ... ], "page": 1, "limit": 20, "total": 100 }
-```
+**200** → `Page<Review>`.
 
 ---
 
 #### `DELETE /api/admin/reviews/:id`
-Delete any review. Restores the `latest` invariant and recomputes the place's aggregates.
+Deletes any review; restores `latest` invariant; recomputes aggregates.
 
-**204 No Content.**
-
-**Errors:** `404 not_found`.
+**204 No Content.** **Errors:** `404 not_found`.
 
 ---
 
 ### Users
 
 #### `GET /api/admin/users`
-List users. Paginated. Phone numbers **are** included for admins.
+Paginated. Phone + telegram included.
 
 **200**
 ```json
@@ -777,7 +711,7 @@ List users. Paginated. Phone numbers **are** included for admins.
       "username": "string|null",
       "telegram_id": "string",
       "phone": "+998...",
-      "avatar_url": "string",
+      "avatar_key": "string|null",
       "blocked": false,
       "created_at": "..."
     }
@@ -789,17 +723,10 @@ List users. Paginated. Phone numbers **are** included for admins.
 ---
 
 #### `PUT /api/admin/users/:id/block`
-Block or unblock a user.
 
-**Request**
-```json
-{ "blocked": true }
-```
+**Request** `{ "blocked": true }`
 
-**200**
-```json
-{ "ok": true, "blocked": true }
-```
+**200** → `{ "ok": true, "blocked": true }`.
 
 **Errors:** `404 not_found`.
 
@@ -808,34 +735,26 @@ Block or unblock a user.
 ### Claims
 
 #### `GET /api/admin/claims`
-List claim requests. Paginated.
-
 **Query:** `status` (`0`, `10`, `-10`, optional), `page`, `limit`.
 
-**200**
-```json
-{ "items": [ ClaimRequest, ... ], "page": 1, "limit": 20, "total": 5 }
-```
+**200** → `Page<ClaimRequest>`.
 
 ---
 
 #### `PUT /api/admin/claims/:id`
-Approve or reject a claim. On approve, the place's `claimed_by` is set to the claim's `user_id`.
+Approve/reject. On approve, sets place's `claimed_by = claim.user_id`.
 
 **Request**
 ```json
 { "status": 10 }
 ```
-- `status`: required, `10` (approve) or `-10` (reject).
+- `status`: `10` (approve) or `-10` (reject).
 
-**200**
-```json
-{ "ok": true, "status": 10 }
-```
+**200** → `{ "ok": true, "status": 10 }`.
 
 **Errors**
 - `400 bad_request` — `status must be 10 or -10`.
-- `404 not_found` — claim or place missing.
+- `404 not_found`.
 - `409 conflict` — `place already claimed by another user`.
 
 ---
@@ -843,14 +762,12 @@ Approve or reject a claim. On approve, the place's `claimed_by` is set to the cl
 ### Categories
 
 #### `GET /api/admin/categories`
-Same payload as the public `GET /api/categories` (kept separate for future divergence).
-
-**200** → `[ Category, ... ]`
+Same as public `GET /api/categories`. **200** → `[ Category, ... ]`.
 
 ---
 
 #### `PUT /api/admin/categories/:id`
-Edit a category's name/description. **Slug is immutable.** All fields optional.
+Edit `name`/`desc`. **Slug immutable.** All optional.
 
 **Request**
 ```json
@@ -860,56 +777,53 @@ Edit a category's name/description. **Slug is immutable.** All fields optional.
 }
 ```
 
-**200**
-```json
-{ "ok": true }
-```
-
-**Errors:** `404 not_found`.
+**200** → `{ "ok": true }`. **Errors:** `404 not_found`.
 
 ---
 
-## 13. Quick Endpoint Map
+## 14. Quick Endpoint Map
 
-| Method | Path                                | Auth         |
-|--------|-------------------------------------|--------------|
-| GET    | `/healthz`                          | public       |
-| POST   | `/api/auth/verify-code`             | public       |
-| GET    | `/api/auth/me`                      | user         |
-| POST   | `/api/admin/auth/login`             | public       |
-| GET    | `/api/admin/auth/me`                | admin        |
-| GET    | `/api/users/:id`                    | public       |
-| GET    | `/api/users/:id/reviews`            | public       |
-| PUT    | `/api/users/me`                     | user         |
-| DELETE | `/api/users/me`                     | user         |
-| GET    | `/api/categories`                   | public       |
-| GET    | `/api/places`                       | public       |
-| GET    | `/api/places/:id`                   | optional     |
-| POST   | `/api/places/create`                | user         |
+| Method | Path                                | Auth            |
+|--------|-------------------------------------|-----------------|
+| GET    | `/healthz`                          | public          |
+| GET    | `/static/:key`                      | public          |
+| POST   | `/api/auth/verify-code`             | public          |
+| GET    | `/api/auth/me`                      | user            |
+| POST   | `/api/admin/auth/login`             | public          |
+| GET    | `/api/admin/auth/me`                | admin           |
+| GET    | `/api/users/:id`                    | public          |
+| GET    | `/api/users/:id/reviews`            | public          |
+| PUT    | `/api/users/me`                     | user            |
+| DELETE | `/api/users/me`                     | user            |
+| GET    | `/api/categories`                   | public          |
+| GET    | `/api/places`                       | public          |
+| GET    | `/api/places/:id`                   | optional        |
+| POST   | `/api/places/create`                | user            |
 | PUT    | `/api/places/:id`                   | user (claimant) |
-| GET    | `/api/places/:id/reviews`           | public       |
-| POST   | `/api/places/:id/reviews`           | user         |
-| DELETE | `/api/reviews/:id`                  | user (author)|
-| GET    | `/api/bookmarks`                    | user         |
-| POST   | `/api/bookmarks/:placeId`           | user         |
-| DELETE | `/api/bookmarks/:placeId`           | user         |
-| POST   | `/api/claims`                       | user         |
-| GET    | `/api/claims/mine`                  | user         |
-| GET    | `/api/admin/places`                 | admin        |
-| PUT    | `/api/admin/places/:id/status`      | admin        |
-| PUT    | `/api/admin/places/:id`             | admin        |
-| DELETE | `/api/admin/places/:id`             | admin        |
-| GET    | `/api/admin/reviews`                | admin        |
-| DELETE | `/api/admin/reviews/:id`            | admin        |
-| GET    | `/api/admin/users`                  | admin        |
-| PUT    | `/api/admin/users/:id/block`        | admin        |
-| GET    | `/api/admin/claims`                 | admin        |
-| PUT    | `/api/admin/claims/:id`             | admin        |
-| GET    | `/api/admin/categories`             | admin        |
-| PUT    | `/api/admin/categories/:id`         | admin        |
+| GET    | `/api/places/:id/reviews`           | public          |
+| POST   | `/api/places/:id/reviews`           | user            |
+| DELETE | `/api/reviews/:id`                  | user (author)   |
+| GET    | `/api/bookmarks`                    | user            |
+| POST   | `/api/bookmarks/:placeId`           | user            |
+| DELETE | `/api/bookmarks/:placeId`           | user            |
+| POST   | `/api/claims`                       | user            |
+| GET    | `/api/claims/mine`                  | user            |
+| POST   | `/api/files/upload`                 | user            |
+| GET    | `/api/admin/places`                 | admin           |
+| PUT    | `/api/admin/places/:id/status`      | admin           |
+| PUT    | `/api/admin/places/:id`             | admin           |
+| DELETE | `/api/admin/places/:id`             | admin           |
+| GET    | `/api/admin/reviews`                | admin           |
+| DELETE | `/api/admin/reviews/:id`            | admin           |
+| GET    | `/api/admin/users`                  | admin           |
+| PUT    | `/api/admin/users/:id/block`        | admin           |
+| GET    | `/api/admin/claims`                 | admin           |
+| PUT    | `/api/admin/claims/:id`             | admin           |
+| GET    | `/api/admin/categories`             | admin           |
+| PUT    | `/api/admin/categories/:id`         | admin           |
 
 ---
 
-## 14. CORS
+## 15. CORS
 
-The server allows all origins (`*`), the methods `GET POST PUT PATCH DELETE OPTIONS`, and the headers `Origin Content-Type Authorization Accept`. Credentials are allowed; preflight cache is 12h. The frontend can call the API directly from the browser.
+All origins (`*`). Methods: `GET POST PUT PATCH DELETE OPTIONS`. Headers: `Origin Content-Type Authorization Accept`. Credentials allowed. Preflight cache 12h. Frontend can call the API directly from the browser.
