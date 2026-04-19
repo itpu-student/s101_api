@@ -21,7 +21,8 @@ func ListBookmarks(ctx context.Context, userID string, paging utils.Paging) (*Bo
 		return nil, err
 	}
 	var bms []models.Bookmark
-	if err := cur.All(ctx, &bms); err != nil {
+	err = cur.All(ctx, &bms)
+	if err != nil {
 		return nil, err
 	}
 	ids := make([]string, 0, len(bms))
@@ -34,7 +35,8 @@ func ListBookmarks(ctx context.Context, userID string, paging utils.Paging) (*Bo
 		if err != nil {
 			return nil, err
 		}
-		if err := pcur.All(ctx, &places); err != nil {
+		err = pcur.All(ctx, &places)
+		if err != nil {
 			return nil, err
 		}
 	}
@@ -44,7 +46,8 @@ func ListBookmarks(ctx context.Context, userID string, paging utils.Paging) (*Bo
 // AddBookmark is idempotent. The bool return is true when the row already
 // existed (duplicate key); handler decides between 201 and 200 on that.
 func AddBookmark(ctx context.Context, userID, placeID string) (*models.Bookmark, bool, error) {
-	if err := db.Places().FindOne(ctx, bson.M{"_id": placeID}).Err(); err != nil {
+	err := db.Places().FindOne(ctx, bson.M{"_id": placeID}).Err()
+	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return nil, false, ErrNotFound
 		}
@@ -56,7 +59,8 @@ func AddBookmark(ctx context.Context, userID, placeID string) (*models.Bookmark,
 		PlaceID:   placeID,
 		CreatedAt: time.Now().UTC(),
 	}
-	if _, err := db.Bookmarks().InsertOne(ctx, b); err != nil {
+	_, err = db.Bookmarks().InsertOne(ctx, b)
+	if err != nil {
 		if mongo.IsDuplicateKeyError(err) {
 			return nil, true, nil
 		}

@@ -54,7 +54,8 @@ func VerifyCode(ctx context.Context, in VerifyCodeInput) (*VerifyCodeOutput, err
 			CreatedAt:  now,
 			UpdatedAt:  now,
 		}
-		if _, err := db.Users().InsertOne(ctx, user); err != nil {
+		_, err = db.Users().InsertOne(ctx, user)
+		if err != nil {
 			return nil, err
 		}
 	default:

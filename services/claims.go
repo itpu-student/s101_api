@@ -23,7 +23,8 @@ func ListClaimsAdmin(ctx context.Context, f ClaimFilter, paging utils.Paging) (*
 		return nil, err
 	}
 	var items []models.ClaimRequest
-	if err := cur.All(ctx, &items); err != nil {
+	err = cur.All(ctx, &items)
+	if err != nil {
 		return nil, err
 	}
 	total, _ := db.ClaimRequests().CountDocuments(ctx, filter)
@@ -79,7 +80,8 @@ func SubmitClaim(ctx context.Context, userID string, in SubmitClaimInput) (*mode
 	}
 
 	var p models.Place
-	if err := db.Places().FindOne(ctx, bson.M{"_id": in.PlaceID}).Decode(&p); err != nil {
+	err := db.Places().FindOne(ctx, bson.M{"_id": in.PlaceID}).Decode(&p)
+	if err != nil {
 		return nil, ErrNotFound
 	}
 	if p.ClaimedBy != nil {
@@ -107,7 +109,8 @@ func SubmitClaim(ctx context.Context, userID string, in SubmitClaimInput) (*mode
 		CreatedAt: now,
 		UpdatedAt: now,
 	}
-	if _, err := db.ClaimRequests().InsertOne(ctx, cr); err != nil {
+	_, err = db.ClaimRequests().InsertOne(ctx, cr)
+	if err != nil {
 		return nil, err
 	}
 	return &cr, nil
@@ -122,9 +125,10 @@ func ListClaimsForUser(ctx context.Context, userID string, paging utils.Paging) 
 		return nil, err
 	}
 	var items []models.ClaimRequest
-	if err := cur.All(ctx, &items); err != nil {
+	err = cur.All(ctx, &items)
+	if err != nil {
 		return nil, err
 	}
-	total, _ := db.Users().CountDocuments(ctx, filter)
+	total, _ := db.ClaimRequests().CountDocuments(ctx, filter)
 	return NewPage(items, paging, total), nil
 }

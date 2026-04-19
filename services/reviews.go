@@ -25,7 +25,8 @@ func ListReviewsAdmin(ctx context.Context, f ReviewFilter, paging utils.Paging) 
 		return nil, err
 	}
 	var items []models.Review
-	if err := cur.All(ctx, &items); err != nil {
+	err = cur.All(ctx, &items)
+	if err != nil {
 		return nil, err
 	}
 	total, _ := db.Reviews().CountDocuments(ctx, filter)
@@ -37,13 +38,15 @@ func ListReviewsAdmin(ctx context.Context, f ReviewFilter, paging utils.Paging) 
 // latest=true. Recomputes the place's rating afterwards.
 func AdminDeleteReview(ctx context.Context, id string) error {
 	var r models.Review
-	if err := db.Reviews().FindOne(ctx, bson.M{"_id": id}).Decode(&r); err != nil {
+	err := db.Reviews().FindOne(ctx, bson.M{"_id": id}).Decode(&r)
+	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return ErrNotFound
 		}
 		return err
 	}
-	if _, err := db.Reviews().DeleteOne(ctx, bson.M{"_id": id}); err != nil {
+	_, err = db.Reviews().DeleteOne(ctx, bson.M{"_id": id})
+	if err != nil {
 		return err
 	}
 	if r.Latest && r.UserID != nil {
@@ -71,7 +74,8 @@ func ListPlaceReviews(ctx context.Context, placeID string, all bool, paging util
 		return nil, err
 	}
 	var items []models.Review
-	if err := cur.All(ctx, &items); err != nil {
+	err = cur.All(ctx, &items)
+	if err != nil {
 		return nil, err
 	}
 	total, _ := db.Reviews().CountDocuments(ctx, filter)
@@ -88,10 +92,11 @@ func CreateReview(ctx context.Context, userID string, placeIDOrSlug string, in C
 	}
 
 	// Step 1 — demote any existing latest review for (place, user).
-	if _, err := db.Reviews().UpdateMany(ctx,
+	_, err = db.Reviews().UpdateMany(ctx,
 		bson.M{"place_id": p.ID, "user_id": userID, "latest": true},
 		bson.M{"$set": bson.M{"latest": false}},
-	); err != nil {
+	)
+	if err != nil {
 		return nil, err
 	}
 
@@ -108,7 +113,8 @@ func CreateReview(ctx context.Context, userID string, placeIDOrSlug string, in C
 		Latest:        true,
 		CreatedAt:     now,
 	}
-	if _, err := db.Reviews().InsertOne(ctx, r); err != nil {
+	_, err = db.Reviews().InsertOne(ctx, r)
+	if err != nil {
 		return nil, err
 	}
 
@@ -120,7 +126,8 @@ func CreateReview(ctx context.Context, userID string, placeIDOrSlug string, in C
 
 func DeleteUserReview(ctx context.Context, userID string, reviewID string) error {
 	var r models.Review
-	if err := db.Reviews().FindOne(ctx, bson.M{"_id": reviewID}).Decode(&r); err != nil {
+	err := db.Reviews().FindOne(ctx, bson.M{"_id": reviewID}).Decode(&r)
+	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return ErrNotFound
 		}
@@ -129,7 +136,8 @@ func DeleteUserReview(ctx context.Context, userID string, reviewID string) error
 	if r.UserID == nil || *r.UserID != userID {
 		return ErrForbidden
 	}
-	if _, err := db.Reviews().DeleteOne(ctx, bson.M{"_id": reviewID}); err != nil {
+	_, err = db.Reviews().DeleteOne(ctx, bson.M{"_id": reviewID})
+	if err != nil {
 		return err
 	}
 	// If we just deleted a latest review, promote the previous one to latest=true.

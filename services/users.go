@@ -22,7 +22,8 @@ func ListUsersAdmin(ctx context.Context, paging utils.Paging) (*Page[AdminUserVi
 		return nil, err
 	}
 	var raw []models.User
-	if err := cur.All(ctx, &raw); err != nil {
+	err = cur.All(ctx, &raw)
+	if err != nil {
 		return nil, err
 	}
 	total, _ := db.Users().CountDocuments(ctx, filter)
@@ -49,7 +50,8 @@ func SetUserBlocked(ctx context.Context, id string, blocked bool) error {
 
 func GetPublicUserView(ctx context.Context, id string) (*PublicUserView, error) {
 	var u models.User
-	if err := db.Users().FindOne(ctx, bson.M{"_id": id}).Decode(&u); err != nil {
+	err := db.Users().FindOne(ctx, bson.M{"_id": id}).Decode(&u)
+	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return nil, ErrNotFound
 		}
@@ -111,7 +113,8 @@ func ListUserReviews(ctx context.Context, userID string, paging utils.Paging) (*
 		return nil, err
 	}
 	var items []models.Review
-	if err := cur.All(ctx, &items); err != nil {
+	err = cur.All(ctx, &items)
+	if err != nil {
 		return nil, err
 	}
 	total, _ := db.Reviews().CountDocuments(ctx, filter)

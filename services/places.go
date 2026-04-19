@@ -27,7 +27,8 @@ func ListPlacesAdmin(ctx context.Context, f PlaceFilter, paging utils.Paging) (*
 		return nil, err
 	}
 	var items []models.Place
-	if err := cur.All(ctx, &items); err != nil {
+	err = cur.All(ctx, &items)
+	if err != nil {
 		return nil, err
 	}
 	total, _ := db.Places().CountDocuments(ctx, filter)
@@ -79,7 +80,8 @@ func ListPlaces(ctx context.Context, f PlaceFilter, paging utils.Paging) (*Page[
 		return nil, err
 	}
 	var places []models.Place
-	if err := cur.All(ctx, &places); err != nil {
+	err = cur.All(ctx, &places)
+	if err != nil {
 		return nil, err
 	}
 	total, _ := db.Places().CountDocuments(ctx, filter)
@@ -150,7 +152,8 @@ func CreatePlace(ctx context.Context, creatorID string, in CreatePlaceInput) (*m
 		CreatedAt:   now,
 		UpdatedAt:   now,
 	}
-	if _, err := db.Places().InsertOne(ctx, p); err != nil {
+	_, err = db.Places().InsertOne(ctx, p)
+	if err != nil {
 		return nil, err
 	}
 	return &p, nil
@@ -179,7 +182,8 @@ func EditPlace(ctx context.Context, claimantID string, idOrSlug string, in EditP
 	if in.Images != nil {
 		update["images"] = *in.Images
 	}
-	if _, err := db.Places().UpdateByID(ctx, p.ID, bson.M{"$set": update}); err != nil {
+	_, err = db.Places().UpdateByID(ctx, p.ID, bson.M{"$set": update})
+	if err != nil {
 		return nil, err
 	}
 
