@@ -27,7 +27,7 @@ func VerifyCode(ctx context.Context, in VerifyCodeInput) (*VerifyCodeOutput, err
 	}).Decode(&otp)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, NewApiErrS(404, "not_found", "invalid or expired code")
+			return nil, NewApiErrS(401, "unauthorized", "invalid or expired code: %s", in.Code)
 		}
 		return nil, err
 	}

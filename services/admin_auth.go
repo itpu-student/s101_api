@@ -12,7 +12,7 @@ import (
 )
 
 // AdminLogin verifies admin credentials and issues a JWT. Returns a generic
-// "not_found: invalid credentials" for both "unknown username" and "wrong
+// "unauthorized: invalid credentials" for both "unknown username" and "wrong
 // password" to avoid leaking which of the two was incorrect.
 func AdminLogin(ctx context.Context, in AdminLoginInput) (*AdminLoginOutput, error) {
 	if in.Username == "" || in.Password == "" {
@@ -22,12 +22,12 @@ func AdminLogin(ctx context.Context, in AdminLoginInput) (*AdminLoginOutput, err
 	err := db.Admins().FindOne(ctx, bson.M{"username": in.Username}).Decode(&a)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, NewApiErrS(404, "not_found", "invalid credentials")
+			return nil, NewApiErrS(401, "unauthorized", "invalid credentials")
 		}
 		return nil, err
 	}
 	if err := utils.ComparePassword(a.PasswordHash, in.Password); err != nil {
-		return nil, NewApiErrS(404, "not_found", "invalid credentials")
+		return nil, NewApiErrS(401, "unauthorized", "invalid credentials")
 	}
 	token, err := utils.IssueJWT(a.ID, utils.TypAdmin)
 	if err != nil {

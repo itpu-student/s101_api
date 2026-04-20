@@ -31,4 +31,3 @@ func bindHasErr(c *gin.Context, obj any) bool {
 	}
 	return false
 }
-
