@@ -60,8 +60,7 @@ func GetPlace(c *gin.Context) {
 func CreatePlace(c *gin.Context) {
 	u := middleware.CurrentUser(c)
 	var in services.CreatePlaceInput
-	if err := c.ShouldBindJSON(&in); err != nil {
-		hasErr(c, services.NewApiErr("bad_input", "%s", err.Error()))
+	if bindHasErr(c, &in) {
 		return
 	}
 
@@ -76,8 +75,7 @@ func CreatePlace(c *gin.Context) {
 func EditPlace(c *gin.Context) {
 	u := middleware.CurrentUser(c)
 	var in services.EditPlaceInput
-	if err := c.ShouldBindJSON(&in); err != nil {
-		hasErr(c, services.NewApiErr("bad_input", "%s", err.Error()))
+	if bindHasErr(c, &in) {
 		return
 	}
 

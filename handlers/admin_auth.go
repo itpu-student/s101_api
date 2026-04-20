@@ -10,8 +10,7 @@ import (
 // POST /api/admin/auth/login
 func AdminLogin(c *gin.Context) {
 	var in services.AdminLoginInput
-	if err := c.ShouldBindJSON(&in); err != nil {
-		hasErr(c, services.NewApiErr("bad_input", "%s", err.Error()))
+	if bindHasErr(c, &in) {
 		return
 	}
 	out, err := services.AdminLogin(c.Request.Context(), in)

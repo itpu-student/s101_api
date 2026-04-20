@@ -12,8 +12,7 @@ import (
 func SubmitClaim(c *gin.Context) {
 	u := middleware.CurrentUser(c)
 	var in services.SubmitClaimInput
-	if err := c.ShouldBindJSON(&in); err != nil {
-		hasErr(c, services.NewApiErr("bad_input", "%s", err.Error()))
+	if bindHasErr(c, &in) {
 		return
 	}
 

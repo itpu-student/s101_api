@@ -20,8 +20,7 @@ func GetPublicUser(c *gin.Context) {
 func UpdateMe(c *gin.Context) {
 	u := middleware.CurrentUser(c)
 	var in services.UpdateMeInput
-	if err := c.ShouldBindJSON(&in); err != nil {
-		hasErr(c, services.NewApiErr("bad_input", "%s", err.Error()))
+	if bindHasErr(c, &in) {
 		return
 	}
 

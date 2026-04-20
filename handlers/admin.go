@@ -25,8 +25,7 @@ func AdminListPlaces(c *gin.Context) {
 // PUT /api/admin/places/:id/status   { status: "pending"|"approved"|"rejected" }
 func AdminSetPlaceStatus(c *gin.Context) {
 	var in services.SetPlaceStatusInput
-	if err := c.ShouldBindJSON(&in); err != nil {
-		hasErr(c, services.NewApiErr("bad_input", "%s", err.Error()))
+	if bindHasErr(c, &in) {
 		return
 	}
 	if hasErr(c, services.SetPlaceStatus(c.Request.Context(), c.Param("id"), in.Status)) {
@@ -38,8 +37,7 @@ func AdminSetPlaceStatus(c *gin.Context) {
 // PUT /api/admin/places/:id   — admin can edit arbitrary fields.
 func AdminEditPlace(c *gin.Context) {
 	var in services.AdminEditPlaceInput
-	if err := c.ShouldBindJSON(&in); err != nil {
-		hasErr(c, services.NewApiErr("bad_input", "%s", err.Error()))
+	if bindHasErr(c, &in) {
 		return
 	}
 	if hasErr(c, services.AdminEditPlace(c.Request.Context(), c.Param("id"), in)) {
@@ -91,8 +89,7 @@ func AdminListUsers(c *gin.Context) {
 // PUT /api/admin/users/:id/block  { blocked: true|false }
 func AdminBlockUser(c *gin.Context) {
 	var in services.BlockUserInput
-	if err := c.ShouldBindJSON(&in); err != nil {
-		hasErr(c, services.NewApiErr("bad_input", "%s", err.Error()))
+	if bindHasErr(c, &in) {
 		return
 	}
 	if hasErr(c, services.SetUserBlocked(c.Request.Context(), c.Param("id"), in.Blocked)) {
@@ -117,8 +114,7 @@ func AdminListClaims(c *gin.Context) {
 func AdminReviewClaim(c *gin.Context) {
 	a := middleware.CurrentAdmin(c)
 	var in services.ReviewClaimInput
-	if err := c.ShouldBindJSON(&in); err != nil {
-		hasErr(c, services.NewApiErr("bad_input", "%s", err.Error()))
+	if bindHasErr(c, &in) {
 		return
 	}
 	if hasErr(c, services.ReviewClaim(c.Request.Context(), c.Param("id"), in.Status, a.ID)) {
@@ -140,8 +136,7 @@ func AdminListCategories(c *gin.Context) {
 // PUT /api/admin/categories/:id  { name: {en,uz}, desc: {en,uz} }  (slug is immutable)
 func AdminEditCategory(c *gin.Context) {
 	var in services.EditCategoryInput
-	if err := c.ShouldBindJSON(&in); err != nil {
-		hasErr(c, services.NewApiErr("bad_input", "%s", err.Error()))
+	if bindHasErr(c, &in) {
 		return
 	}
 	if hasErr(c, services.EditCategory(c.Request.Context(), c.Param("id"), in)) {

@@ -11,8 +11,7 @@ import (
 // Body: { "code": "123456" }
 func VerifyCode(c *gin.Context) {
 	var in services.VerifyCodeInput
-	if err := c.ShouldBindJSON(&in); err != nil {
-		hasErr(c, services.NewApiErr("bad_input", "%s", err.Error()))
+	if bindHasErr(c, &in) {
 		return
 	}
 	out, err := services.VerifyCode(c.Request.Context(), in)

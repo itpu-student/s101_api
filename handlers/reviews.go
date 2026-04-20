@@ -30,8 +30,7 @@ func ListPlaceReviews(c *gin.Context) {
 func CreateReview(c *gin.Context) {
 	u := middleware.CurrentUser(c)
 	var in services.CreateReviewInput
-	if err := c.ShouldBindJSON(&in); err != nil {
-		hasErr(c, services.NewApiErr("bad_input", "%s", err.Error()))
+	if bindHasErr(c, &in) {
 		return
 	}
 

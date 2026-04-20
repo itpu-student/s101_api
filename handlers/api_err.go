@@ -24,3 +24,11 @@ func hasErr(c *gin.Context, err error) bool {
 	})
 	return true
 }
+
+func bindHasErr(c *gin.Context, obj any) bool {
+	if err := c.ShouldBind(obj); err != nil {
+		return hasErr(c, services.NewApiErr("bad_input", "%s", err.Error()))
+	}
+	return false
+}
+
