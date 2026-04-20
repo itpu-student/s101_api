@@ -5,19 +5,20 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/itpu-student/s101_api/middleware"
 	"github.com/itpu-student/s101_api/services"
 	"github.com/itpu-student/s101_api/utils"
 	. "github.com/itpu-student/s101_api/utils/api_err"
 )
 
-// GET /api/places?query=&sort=top|recent|nearest&category=<slug-or-id>&near=lat,lon&page=
+// GET /api/places?query=&sort=top|recent|nearest&category=<uuid>&near=lat,lon&page=
 func ListPlaces(c *gin.Context) {
 	paging := utils.ParsePaging(c)
 
 	filter := services.PlaceFilter{}
-	if cat := c.Query("category"); cat != "" {
-		filter.Category = &cat
+	if cat := c.Query("category_id"); cat != "" {
+		filter.CategoryId = &cat
 	}
 	if q := strings.TrimSpace(c.Query("query")); q != "" {
 		filter.Query = &q
@@ -72,15 +73,20 @@ func CreatePlace(c *gin.Context) {
 	utils.Created(c, p)
 }
 
-// PUT /api/places/:id   — only the claimant may edit
+// PUT /api/places/:id   — only the claimant may edit. :id must be a UUID.
 func EditPlace(c *gin.Context) {
 	u := middleware.CurrentUser(c)
+	id := c.Param("id")
+	if _, err := uuid.Parse(id); err != nil {
+		hasErr(c, NewApiErr(AetBadInput, "id must be a UUID"))
+		return
+	}
 	var in services.EditPlaceInput
 	if bindHasErr(c, &in) {
 		return
 	}
 
-	view, err := services.EditPlace(c.Request.Context(), u.ID, c.Param("id"), in)
+	view, err := services.EditPlace(c.Request.Context(), u.ID, id, in)
 	if hasErr(c, err) {
 		return
 	}

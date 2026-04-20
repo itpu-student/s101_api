@@ -6,9 +6,9 @@ import (
 
 	"github.com/itpu-student/s101_api/db"
 	"github.com/itpu-student/s101_api/models"
+	. "github.com/itpu-student/s101_api/utils/api_err"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	. "github.com/itpu-student/s101_api/utils/api_err"
 )
 
 func ListCategories(ctx context.Context) ([]models.Category, error) {
@@ -39,17 +39,4 @@ func EditCategory(ctx context.Context, id string, in EditCategoryInput) error {
 		return NewApiErrS(404, AetNotFound, "category not found: %s", id)
 	}
 	return nil
-}
-
-// ResolveCategoryID accepts a category UUID or slug and returns the canonical ID.
-func ResolveCategoryID(ctx context.Context, val string) (string, bool) {
-	var cat models.Category
-	err := db.Categories().FindOne(ctx, bson.M{"$or": bson.A{
-		bson.M{"_id": val},
-		bson.M{"slug": val},
-	}}).Decode(&cat)
-	if err != nil {
-		return "", false
-	}
-	return cat.ID, true
 }

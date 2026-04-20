@@ -83,9 +83,13 @@ func ListPlaceReviews(ctx context.Context, placeID string, all bool, paging util
 	return NewPage(items, paging, total), nil
 }
 
-func CreateReview(ctx context.Context, userID string, placeIDOrSlug string, in CreateReviewInput) (*models.Review, error) {
-	p, err := FindPlaceByIDOrSlug(ctx, placeIDOrSlug)
+func CreateReview(ctx context.Context, userID string, placeID string, in CreateReviewInput) (*models.Review, error) {
+	var p models.Place
+	err := db.Places().FindOne(ctx, bson.M{"_id": placeID}).Decode(&p)
 	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, NewApiErrS(404, AetNotFound, "place not found: %s", placeID)
+		}
 		return nil, err
 	}
 	if p.Status != models.StatusApproved {

@@ -7,7 +7,7 @@ import "github.com/itpu-student/s101_api/models"
 
 type PlaceFilter struct {
 	Status   *models.Status
-	Category *string
+	CategoryId *string
 	Query    *string
 	Sort     *string
 	NearLat  *float64

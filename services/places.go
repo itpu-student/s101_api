@@ -7,13 +7,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/itpu-student/s101_api/db"
 	"github.com/itpu-student/s101_api/models"
 	"github.com/itpu-student/s101_api/utils"
+	. "github.com/itpu-student/s101_api/utils/api_err"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	. "github.com/itpu-student/s101_api/utils/api_err"
 )
 
 func ListPlacesAdmin(ctx context.Context, f PlaceFilter, paging utils.Paging) (*Page[models.Place], error) {
@@ -42,12 +43,8 @@ func ListPlaces(ctx context.Context, f PlaceFilter, paging utils.Paging) (*Page[
 		filter["status"] = *f.Status
 	}
 
-	if f.Category != nil {
-		if id, ok := ResolveCategoryID(ctx, *f.Category); ok {
-			filter["category_id"] = id
-		} else {
-			return NewPage([]PlaceView{}, paging, 0), nil
-		}
+	if f.CategoryId != nil {
+		filter["category_id"] = *f.CategoryId
 	}
 
 	if f.Query != nil {
@@ -95,7 +92,13 @@ func ListPlaces(ctx context.Context, f PlaceFilter, paging utils.Paging) (*Page[
 }
 
 func GetPlaceView(ctx context.Context, idOrSlug string, viewerID *string, viewerTyp *string) (*PlaceView, error) {
-	p, err := FindPlaceByIDOrSlug(ctx, idOrSlug)
+	var p *models.Place
+	var err error
+	if _, perr := uuid.Parse(idOrSlug); perr == nil {
+		p, err = FindPlaceByID(ctx, idOrSlug)
+	} else {
+		p, err = FindPlaceBySlug(ctx, idOrSlug)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -118,10 +121,16 @@ func GetPlaceView(ctx context.Context, idOrSlug string, viewerID *string, viewer
 }
 
 func CreatePlace(ctx context.Context, creatorID string, in CreatePlaceInput) (*models.Place, error) {
-	catID, ok := ResolveCategoryID(ctx, in.CategoryID)
-	if !ok {
-		return nil, NewApiErr(AetBadInput, "category not found: %s", in.CategoryID)
+	if _, err := uuid.Parse(in.CategoryID); err != nil {
+		return nil, NewApiErr(AetBadInput, "category_id must be a UUID")
 	}
+	if err := db.Categories().FindOne(ctx, bson.M{"_id": in.CategoryID}).Err(); err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, NewApiErr(AetBadInput, "category not found: %s", in.CategoryID)
+		}
+		return nil, err
+	}
+	catID := in.CategoryID
 
 	atc, err := utils.ResolveSOATOID(ctx, in.Lat, in.Lon)
 	if err != nil {
@@ -160,9 +169,13 @@ func CreatePlace(ctx context.Context, creatorID string, in CreatePlaceInput) (*m
 	return &p, nil
 }
 
-func EditPlace(ctx context.Context, claimantID string, idOrSlug string, in EditPlaceInput) (*PlaceView, error) {
-	p, err := FindPlaceByIDOrSlug(ctx, idOrSlug)
+func EditPlace(ctx context.Context, claimantID string, id string, in EditPlaceInput) (*PlaceView, error) {
+	var p models.Place
+	err := db.Places().FindOne(ctx, bson.M{"_id": id}).Decode(&p)
 	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, NewApiErrS(404, AetNotFound, "place not found: %s", id)
+		}
 		return nil, err
 	}
 
@@ -183,18 +196,15 @@ func EditPlace(ctx context.Context, claimantID string, idOrSlug string, in EditP
 	if in.Images != nil {
 		update["images"] = *in.Images
 	}
-	_, err = db.Places().UpdateByID(ctx, p.ID, bson.M{"$set": update})
+	_, err = db.Places().UpdateByID(ctx, id, bson.M{"$set": update})
 	if err != nil {
 		return nil, err
 	}
 
-	// reload
-	p, err = FindPlaceByIDOrSlug(ctx, p.ID)
-	if err != nil {
+	if err := db.Places().FindOne(ctx, bson.M{"_id": id}).Decode(&p); err != nil {
 		return nil, err
 	}
-
-	return NewPlaceView(*p), nil
+	return NewPlaceView(p), nil
 }
 
 func SetPlaceStatus(ctx context.Context, id string, status models.Status) error {
@@ -220,11 +230,16 @@ func AdminEditPlace(ctx context.Context, id string, in AdminEditPlaceInput) erro
 		update["name"] = *in.Name
 	}
 	if in.CategoryID != nil {
-		catID, ok := ResolveCategoryID(ctx, *in.CategoryID)
-		if !ok {
-			return NewApiErr(AetBadInput, "category not found: %s", *in.CategoryID)
+		if _, err := uuid.Parse(*in.CategoryID); err != nil {
+			return NewApiErr(AetBadInput, "category_id must be a UUID")
 		}
-		update["category_id"] = catID
+		if err := db.Categories().FindOne(ctx, bson.M{"_id": *in.CategoryID}).Err(); err != nil {
+			if errors.Is(err, mongo.ErrNoDocuments) {
+				return NewApiErr(AetBadInput, "category not found: %s", *in.CategoryID)
+			}
+			return err
+		}
+		update["category_id"] = *in.CategoryID
 	}
 	if in.Address != nil {
 		update["address"] = *in.Address
@@ -277,15 +292,20 @@ func DeletePlaceCascade(ctx context.Context, id string) error {
 	}
 	return nil
 }
-func FindPlaceByIDOrSlug(ctx context.Context, idOrSlug string) (*models.Place, error) {
+func FindPlaceByID(ctx context.Context, id string) (*models.Place, error) {
+	return findPlaceBy(ctx, bson.M{"_id": id}, id)
+}
+
+func FindPlaceBySlug(ctx context.Context, slug string) (*models.Place, error) {
+	return findPlaceBy(ctx, bson.M{"slug": slug}, slug)
+}
+
+func findPlaceBy(ctx context.Context, filter bson.M, key string) (*models.Place, error) {
 	var p models.Place
-	err := db.Places().FindOne(ctx, bson.M{"$or": bson.A{
-		bson.M{"_id": idOrSlug},
-		bson.M{"slug": idOrSlug},
-	}}).Decode(&p)
+	err := db.Places().FindOne(ctx, filter).Decode(&p)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, NewApiErrS(404, AetNotFound, "place not found: %s", idOrSlug)
+			return nil, NewApiErrS(404, AetNotFound, "place not found: %s", key)
 		}
 		return nil, err
 	}

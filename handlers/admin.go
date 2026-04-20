@@ -2,11 +2,24 @@ package handlers
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/itpu-student/s101_api/middleware"
 	"github.com/itpu-student/s101_api/models"
 	"github.com/itpu-student/s101_api/services"
 	"github.com/itpu-student/s101_api/utils"
+	. "github.com/itpu-student/s101_api/utils/api_err"
 )
+
+// requireUUIDParam enforces that the named path param is a UUID. Writes target
+// a stable resource — slugs are for reads only.
+func requireUUIDParam(c *gin.Context, name string) (string, bool) {
+	v := c.Param(name)
+	if _, err := uuid.Parse(v); err != nil {
+		hasErr(c, NewApiErr(AetBadInput, "%s must be a UUID", name))
+		return "", false
+	}
+	return v, true
+}
 
 // ----- places -----
 
@@ -22,33 +35,45 @@ func AdminListPlaces(c *gin.Context) {
 	utils.OK(c, page)
 }
 
-// PUT /api/admin/places/:id/status   { status: "pending"|"approved"|"rejected" }
+// PUT /api/admin/places/:id/status   { status: "pending"|"approved"|"rejected" }   :id must be a UUID.
 func AdminSetPlaceStatus(c *gin.Context) {
+	id, ok := requireUUIDParam(c, "id")
+	if !ok {
+		return
+	}
 	var in services.SetPlaceStatusInput
 	if bindHasErr(c, &in) {
 		return
 	}
-	if hasErr(c, services.SetPlaceStatus(c.Request.Context(), c.Param("id"), in.Status)) {
+	if hasErr(c, services.SetPlaceStatus(c.Request.Context(), id, in.Status)) {
 		return
 	}
 	utils.OK(c, services.Ok{Ok: true})
 }
 
-// PUT /api/admin/places/:id   — admin can edit arbitrary fields.
+// PUT /api/admin/places/:id   — admin can edit arbitrary fields. :id must be a UUID.
 func AdminEditPlace(c *gin.Context) {
+	id, ok := requireUUIDParam(c, "id")
+	if !ok {
+		return
+	}
 	var in services.AdminEditPlaceInput
 	if bindHasErr(c, &in) {
 		return
 	}
-	if hasErr(c, services.AdminEditPlace(c.Request.Context(), c.Param("id"), in)) {
+	if hasErr(c, services.AdminEditPlace(c.Request.Context(), id, in)) {
 		return
 	}
 	utils.OK(c, services.Ok{Ok: true})
 }
 
-// DELETE /api/admin/places/:id
+// DELETE /api/admin/places/:id   — :id must be a UUID.
 func AdminDeletePlace(c *gin.Context) {
-	if hasErr(c, services.DeletePlaceCascade(c.Request.Context(), c.Param("id"))) {
+	id, ok := requireUUIDParam(c, "id")
+	if !ok {
+		return
+	}
+	if hasErr(c, services.DeletePlaceCascade(c.Request.Context(), id)) {
 		return
 	}
 	utils.NoContent(c)
@@ -133,13 +158,17 @@ func AdminListCategories(c *gin.Context) {
 	utils.OK(c, cats)
 }
 
-// PUT /api/admin/categories/:id  { name: {en,uz}, desc: {en,uz} }  (slug is immutable)
+// PUT /api/admin/categories/:id  { name: {en,uz}, desc: {en,uz} }  (slug is immutable)  :id must be a UUID.
 func AdminEditCategory(c *gin.Context) {
+	id, ok := requireUUIDParam(c, "id")
+	if !ok {
+		return
+	}
 	var in services.EditCategoryInput
 	if bindHasErr(c, &in) {
 		return
 	}
-	if hasErr(c, services.EditCategory(c.Request.Context(), c.Param("id"), in)) {
+	if hasErr(c, services.EditCategory(c.Request.Context(), id, in)) {
 		return
 	}
 	utils.OK(c, services.Ok{Ok: true})

@@ -432,7 +432,7 @@ Create place (starts `status=0` pending).
 ```json
 {
   "name": "Blue Cafe",
-  "category_id": "uuid-or-slug",
+  "category_id": "uuid",
   "address": { "en": "...", "uz": "..." },
   "phone": "+998...",
   "description": { "en": "...", "uz": "..." },
@@ -442,7 +442,7 @@ Create place (starts `status=0` pending).
   "weekly_hours": { "mon": [{ "open": "09:00", "close": "22:00" }] }
 }
 ```
-Required: `name`, `category_id`, `address`, `lat`, `lon`.
+Required: `name`, `category_id` (strict UUID), `address`, `lat`, `lon`.
 
 **201** → `Place`.
 
@@ -453,7 +453,7 @@ Required: `name`, `category_id`, `address`, `lat`, `lon`.
 ---
 
 ### `PUT /api/places/:id`
-Edit. **Only `claimed_by` may call.** `:id` = UUID or slug.
+Edit. **Only `claimed_by` may call.** `:id` = **UUID only** (writes address stable IDs; slugs are read-only).
 
 **Auth:** RequireUser.
 
@@ -487,7 +487,7 @@ Paginated. Default `latest=true` only. `:id` = UUID or slug.
 ---
 
 ### `POST /api/places/:id/reviews`
-Create or replace user's review. Prior latest demoted to `latest=false`.
+Create or replace user's review. Prior latest demoted to `latest=false`. `:id` = **UUID only**.
 
 **Auth:** RequireUser. Place must be `status=10`.
 
@@ -663,13 +663,13 @@ List any status. Paginated.
 ---
 
 #### `PUT /api/admin/places/:id`
-Edit any field; all optional. Sending both `lat` and `lon` updates geo `location`.
+Edit any field; all optional. Sending both `lat` and `lon` updates geo `location`. `:id` and `category_id` are **UUID only**.
 
 **Request**
 ```json
 {
   "name": "...",
-  "category_id": "uuid-or-slug",
+  "category_id": "uuid",
   "address": { "en": "...", "uz": "..." },
   "phone": "...",
   "description": { "en": "...", "uz": "..." },
