@@ -155,6 +155,7 @@ func CreatePlace(ctx context.Context, creatorID string, in CreatePlaceInput) (*m
 		Lat:         in.Lat,
 		Lon:         in.Lon,
 		Location:    models.NewGeoPoint(in.Lat, in.Lon),
+		LogoKey:     in.LogoKey,
 		Images:      CoalesceStrings(in.Images),
 		WeeklyHours: in.WeeklyHours,
 		Status:      models.StatusPending,
@@ -192,6 +193,9 @@ func EditPlace(ctx context.Context, claimantID string, id string, in EditPlaceIn
 	}
 	if in.WeeklyHours != nil {
 		update["weekly_hours"] = *in.WeeklyHours
+	}
+	if in.LogoKey != nil {
+		update["logo_key"] = *in.LogoKey
 	}
 	if in.Images != nil {
 		update["images"] = *in.Images
@@ -258,6 +262,9 @@ func AdminEditPlace(ctx context.Context, id string, in AdminEditPlaceInput) erro
 	}
 	if in.Lat != nil && in.Lon != nil {
 		update["location"] = models.NewGeoPoint(*in.Lat, *in.Lon)
+	}
+	if in.LogoKey != nil {
+		update["logo_key"] = *in.LogoKey
 	}
 	if in.Images != nil {
 		update["images"] = *in.Images

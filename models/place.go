@@ -41,6 +41,7 @@ type Place struct {
 	Lat          float64     `bson:"lat" json:"lat"`
 	Lon          float64     `bson:"lon" json:"lon"`
 	Location     GeoPoint    `bson:"location" json:"location"`
+	LogoKey      string      `bson:"logo_key" json:"logo_key"`
 	Images       []string    `bson:"images" json:"images"`
 	WeeklyHours  WeeklyHours `bson:"weekly_hours" json:"weekly_hours"`
 	Status       Status      `bson:"status" json:"status"`

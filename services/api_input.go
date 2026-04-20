@@ -17,6 +17,7 @@ type AdminEditPlaceInput struct {
 	Description *models.I18nText    `json:"description"`
 	Lat         *float64            `json:"lat"`
 	Lon         *float64            `json:"lon"`
+	LogoKey     *string             `json:"logo_key"`
 	Images      *[]string           `json:"images"`
 	WeeklyHours *models.WeeklyHours `json:"weekly_hours"`
 }
@@ -71,6 +72,7 @@ type CreatePlaceInput struct {
 	Description models.I18nText    `json:"description"`
 	Lat         float64            `json:"lat"`
 	Lon         float64            `json:"lon"`
+	LogoKey     string             `json:"logo_key"`
 	Images      []string           `json:"images"`
 	WeeklyHours models.WeeklyHours `json:"weekly_hours"`
 }
@@ -79,5 +81,6 @@ type EditPlaceInput struct {
 	Phone       *string             `json:"phone"`
 	Description *models.I18nText    `json:"description"`
 	WeeklyHours *models.WeeklyHours `json:"weekly_hours"`
+	LogoKey     *string             `json:"logo_key"`
 	Images      *[]string           `json:"images"`
 }
