@@ -12,6 +12,7 @@ import (
 	"github.com/itpu-student/s101_api/db"
 	"github.com/itpu-student/s101_api/models"
 	"github.com/itpu-student/s101_api/utils"
+	. "github.com/itpu-student/s101_api/utils/api_err"
 )
 
 const staticDir = "./static"
@@ -24,7 +25,7 @@ var allowedUsages = map[string]bool{
 
 func UploadFile(ctx context.Context, userID, usage string, fh *multipart.FileHeader) (*models.File, error) {
 	if !allowedUsages[usage] {
-		return nil, NewApiErr("bad_input", "invalid usage: %s", usage)
+		return nil, NewApiErr(AetBadInput, "invalid usage: %s", usage)
 	}
 
 	ext := strings.TrimPrefix(strings.ToLower(filepath.Ext(fh.Filename)), ".")

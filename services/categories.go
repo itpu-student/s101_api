@@ -8,6 +8,7 @@ import (
 	"github.com/itpu-student/s101_api/models"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	. "github.com/itpu-student/s101_api/utils/api_err"
 )
 
 func ListCategories(ctx context.Context) ([]models.Category, error) {
@@ -35,7 +36,7 @@ func EditCategory(ctx context.Context, id string, in EditCategoryInput) error {
 		return err
 	}
 	if res.MatchedCount == 0 {
-		return NewApiErrS(404, "not_found", "category not found: %s", id)
+		return NewApiErrS(404, AetNotFound, "category not found: %s", id)
 	}
 	return nil
 }

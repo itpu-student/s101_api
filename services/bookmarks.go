@@ -11,6 +11,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	. "github.com/itpu-student/s101_api/utils/api_err"
 )
 
 func ListBookmarks(ctx context.Context, userID string, paging utils.Paging) (*Page[BookmarkView], error) {
@@ -67,7 +68,7 @@ func AddBookmark(ctx context.Context, userID, placeID string) (*models.Bookmark,
 	err := db.Places().FindOne(ctx, bson.M{"_id": placeID}).Err()
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, false, NewApiErrS(404, "not_found", "place not found: %s", placeID)
+			return nil, false, NewApiErrS(404, AetNotFound, "place not found: %s", placeID)
 		}
 		return nil, false, err
 	}

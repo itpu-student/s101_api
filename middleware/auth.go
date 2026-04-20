@@ -8,7 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/itpu-student/s101_api/db"
 	"github.com/itpu-student/s101_api/models"
-	"github.com/itpu-student/s101_api/services"
+	. "github.com/itpu-student/s101_api/utils/api_err"
 	"github.com/itpu-student/s101_api/utils"
 	"go.mongodb.org/mongo-driver/bson"
 )
@@ -19,7 +19,7 @@ const (
 	CTX_KEY_CLAIMS = "admin"
 )
 
-func abortErr(c *gin.Context, e *services.ApiErr) {
+func abortErr(c *gin.Context, e *ApiErr) {
 	c.AbortWithStatusJSON(e.Status(), e)
 }
 
@@ -56,27 +56,27 @@ func RequireUser() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		tok := bearer(c)
 		if tok == "" {
-			abortErr(c, services.NewApiErrS(401, "unauthorized", "missing token"))
+			abortErr(c, NewApiErrS(401, AetUnauthorized, "missing token"))
 			return
 		}
 		claims, err := utils.ParseJWT(tok)
 		if err != nil {
-			abortErr(c, services.NewApiErrS(401, "unauthorized", "invalid token"))
+			abortErr(c, NewApiErrS(401, AetUnauthorized, "invalid token"))
 			return
 		}
 		if claims.Typ != utils.TypUser {
-			abortErr(c, services.NewApiErrS(403, "forbidden", "user token required"))
+			abortErr(c, NewApiErrS(403, AetForbidden, "user token required"))
 			return
 		}
 		ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
 		defer cancel()
 		var u models.User
 		if err := db.Users().FindOne(ctx, bson.M{"_id": claims.Subject}).Decode(&u); err != nil {
-			abortErr(c, services.NewApiErrS(401, "unauthorized", "user not found"))
+			abortErr(c, NewApiErrS(401, AetUnauthorized, "user not found"))
 			return
 		}
 		if u.Blocked {
-			abortErr(c, services.NewApiErrS(403, "forbidden", "account is blocked"))
+			abortErr(c, NewApiErrS(403, AetForbidden, "account is blocked"))
 			return
 		}
 		c.Set(CTX_KEY_CLAIMS, claims)
@@ -90,23 +90,23 @@ func RequireAdmin() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		tok := bearer(c)
 		if tok == "" {
-			abortErr(c, services.NewApiErrS(401, "unauthorized", "missing token"))
+			abortErr(c, NewApiErrS(401, AetUnauthorized, "missing token"))
 			return
 		}
 		claims, err := utils.ParseJWT(tok)
 		if err != nil {
-			abortErr(c, services.NewApiErrS(401, "unauthorized", "invalid token"))
+			abortErr(c, NewApiErrS(401, AetUnauthorized, "invalid token"))
 			return
 		}
 		if claims.Typ != utils.TypAdmin {
-			abortErr(c, services.NewApiErrS(403, "forbidden", "admin token required"))
+			abortErr(c, NewApiErrS(403, AetForbidden, "admin token required"))
 			return
 		}
 		ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
 		defer cancel()
 		var a models.Admin
 		if err := db.Admins().FindOne(ctx, bson.M{"_id": claims.Subject}).Decode(&a); err != nil {
-			abortErr(c, services.NewApiErrS(401, "unauthorized", "admin not found"))
+			abortErr(c, NewApiErrS(401, AetUnauthorized, "admin not found"))
 			return
 		}
 		c.Set(CTX_KEY_CLAIMS, claims)

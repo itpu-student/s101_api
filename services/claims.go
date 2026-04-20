@@ -9,6 +9,7 @@ import (
 	"github.com/itpu-student/s101_api/utils"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	. "github.com/itpu-student/s101_api/utils/api_err"
 )
 
 func ListClaimsAdmin(ctx context.Context, f ClaimFilter, paging utils.Paging) (*Page[models.ClaimRequest], error) {
@@ -35,24 +36,22 @@ func ListClaimsAdmin(ctx context.Context, f ClaimFilter, paging utils.Paging) (*
 // to the claim's user. Rejects the approval if the place is already claimed
 // by someone else.
 func ReviewClaim(ctx context.Context, claimID string, status models.Status, reviewerID string) error {
-	if status != models.StatusApproved && status != models.StatusRejected {
-		return NewApiErr("bad_input", "invalid status: %s", status)
-	}
+		return NewApiErr(AetBadInput, "invalid status: %s", status)
 
 	var cr models.ClaimRequest
 	err := db.ClaimRequests().FindOne(ctx, bson.M{"_id": claimID}).Decode(&cr)
 	if err != nil {
-		return NewApiErrS(404, "not_found", "claim not found: %s", claimID)
+		return NewApiErrS(404, AetNotFound, "claim not found: %s", claimID)
 	}
 
 	if status == models.StatusApproved {
 		var p models.Place
 		err = db.Places().FindOne(ctx, bson.M{"_id": cr.PlaceID}).Decode(&p)
 		if err != nil {
-			return NewApiErrS(404, "not_found", "place not found: %s", cr.PlaceID)
+			return NewApiErrS(404, AetNotFound, "place not found: %s", cr.PlaceID)
 		}
 		if p.ClaimedBy != nil && *p.ClaimedBy != cr.UserID {
-			return NewApiErrS(409, "already_claimed", "place '%s' already claimed by another user", cr.PlaceID)
+			return NewApiErrS(409, AetAlreadyClaimed, "place '%s' already claimed by another user", cr.PlaceID)
 		}
 		_, err = db.Places().UpdateByID(ctx, cr.PlaceID, bson.M{"$set": bson.M{
 			"claimed_by": cr.UserID,
@@ -76,16 +75,16 @@ func ReviewClaim(ctx context.Context, claimID string, status models.Status, revi
 
 func SubmitClaim(ctx context.Context, userID string, in SubmitClaimInput) (*models.ClaimRequest, error) {
 	if in.PlaceID == "" || in.Phone == "" {
-		return nil, NewApiErr("bad_input", "place_id and phone are required")
+		return nil, NewApiErr(AetBadInput, "place_id and phone are required")
 	}
 
 	var p models.Place
 	err := db.Places().FindOne(ctx, bson.M{"_id": in.PlaceID}).Decode(&p)
 	if err != nil {
-		return nil, NewApiErrS(404, "not_found", "place not found: %s", in.PlaceID)
+		return nil, NewApiErrS(404, AetNotFound, "place not found: %s", in.PlaceID)
 	}
 	if p.ClaimedBy != nil {
-		return nil, NewApiErrS(409, "already_claimed", "place '%s' already claimed", p.ID)
+		return nil, NewApiErrS(409, AetAlreadyClaimed, "place '%s' already claimed", p.ID)
 	}
 
 	// Reject duplicate pending claims by the same user.
@@ -95,7 +94,7 @@ func SubmitClaim(ctx context.Context, userID string, in SubmitClaimInput) (*mode
 		"status":   models.StatusPending,
 	})
 	if existing.Err() == nil {
-		return nil, NewApiErrS(409, "pending_claim_exists", "you already have a pending claim for place '%s'", p.ID)
+		return nil, NewApiErrS(409, AetPendingClaimExists, "you already have a pending claim for place '%s'", p.ID)
 	}
 
 	now := time.Now().UTC()

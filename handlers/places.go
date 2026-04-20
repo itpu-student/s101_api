@@ -8,6 +8,7 @@ import (
 	"github.com/itpu-student/s101_api/middleware"
 	"github.com/itpu-student/s101_api/services"
 	"github.com/itpu-student/s101_api/utils"
+	. "github.com/itpu-student/s101_api/utils/api_err"
 )
 
 // GET /api/places?query=&sort=top|recent|nearest&category=<slug-or-id>&near=lat,lon&page=
@@ -28,7 +29,7 @@ func ListPlaces(c *gin.Context) {
 		filter.NearLat = &lat
 		filter.NearLon = &lon
 	} else if sort == "nearest" {
-		hasErr(c, services.NewApiErr("bad_input", "sort=nearest requires near=lat,lon"))
+		hasErr(c, NewApiErr(AetBadInput, "sort=nearest requires near=lat,lon"))
 		return
 	}
 

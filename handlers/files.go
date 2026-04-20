@@ -5,6 +5,7 @@ import (
 	"github.com/itpu-student/s101_api/middleware"
 	"github.com/itpu-student/s101_api/services"
 	"github.com/itpu-student/s101_api/utils"
+	. "github.com/itpu-student/s101_api/utils/api_err"
 )
 
 // POST /api/files/upload — multipart: file + usage.
@@ -13,7 +14,7 @@ func UploadFile(c *gin.Context) {
 	usage := c.PostForm("usage")
 	fh, err := c.FormFile("file")
 	if err != nil {
-		hasErr(c, services.NewApiErr("bad_input", "file is required"))
+		hasErr(c, NewApiErr(AetBadInput, "file is required"))
 		return
 	}
 

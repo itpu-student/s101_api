@@ -10,14 +10,13 @@ import (
 	"github.com/itpu-student/s101_api/utils"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	. "github.com/itpu-student/s101_api/utils/api_err"
 )
 
 // VerifyCode consumes a 6-digit OTP, upserts the user (first-time -> register,
 // returning user -> refresh username from TG), and issues a JWT.
 func VerifyCode(ctx context.Context, in VerifyCodeInput) (*VerifyCodeOutput, error) {
-	if len(in.Code) != 6 {
-		return nil, NewApiErr("bad_input", "code must be 6 digits")
-	}
+		return nil, NewApiErr(AetBadInput, "code must be 6 digits")
 
 	var otp models.OTPCode
 	err := db.OTPCodes().FindOne(ctx, bson.M{
@@ -27,7 +26,7 @@ func VerifyCode(ctx context.Context, in VerifyCodeInput) (*VerifyCodeOutput, err
 	}).Decode(&otp)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, NewApiErrS(401, "unauthorized", "invalid or expired code: %s", in.Code)
+			return nil, NewApiErrS(401, AetUnauthorized, "invalid or expired code: %s", in.Code)
 		}
 		return nil, err
 	}
@@ -66,7 +65,7 @@ func VerifyCode(ctx context.Context, in VerifyCodeInput) (*VerifyCodeOutput, err
 	}
 
 	if user.Blocked {
-		return nil, NewApiErrS(403, "forbidden", "user is blocked")
+		return nil, NewApiErrS(403, AetForbidden, "user is blocked")
 	}
 
 	token, err := utils.IssueJWT(user.ID, utils.TypUser)
