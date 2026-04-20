@@ -36,23 +36,23 @@ func ListClaimsAdmin(ctx context.Context, f ClaimFilter, paging utils.Paging) (*
 // by someone else.
 func ReviewClaim(ctx context.Context, claimID string, status models.Status, reviewerID string) error {
 	if status != models.StatusApproved && status != models.StatusRejected {
-		return ErrBadInput
+		return NewApiErr("bad_input", "invalid status: %s", status)
 	}
 
 	var cr models.ClaimRequest
 	err := db.ClaimRequests().FindOne(ctx, bson.M{"_id": claimID}).Decode(&cr)
 	if err != nil {
-		return ErrNotFound
+		return NewApiErrS(404, "not_found", "claim not found: %s", claimID)
 	}
 
 	if status == models.StatusApproved {
 		var p models.Place
 		err = db.Places().FindOne(ctx, bson.M{"_id": cr.PlaceID}).Decode(&p)
 		if err != nil {
-			return ErrNotFound
+			return NewApiErrS(404, "not_found", "place not found: %s", cr.PlaceID)
 		}
 		if p.ClaimedBy != nil && *p.ClaimedBy != cr.UserID {
-			return ErrConflict
+			return NewApiErrS(409, "already_claimed", "place '%s' already claimed by another user", cr.PlaceID)
 		}
 		_, err = db.Places().UpdateByID(ctx, cr.PlaceID, bson.M{"$set": bson.M{
 			"claimed_by": cr.UserID,
@@ -76,16 +76,16 @@ func ReviewClaim(ctx context.Context, claimID string, status models.Status, revi
 
 func SubmitClaim(ctx context.Context, userID string, in SubmitClaimInput) (*models.ClaimRequest, error) {
 	if in.PlaceID == "" || in.Phone == "" {
-		return nil, ErrBadInput
+		return nil, NewApiErr("bad_input", "place_id and phone are required")
 	}
 
 	var p models.Place
 	err := db.Places().FindOne(ctx, bson.M{"_id": in.PlaceID}).Decode(&p)
 	if err != nil {
-		return nil, ErrNotFound
+		return nil, NewApiErrS(404, "not_found", "place not found: %s", in.PlaceID)
 	}
 	if p.ClaimedBy != nil {
-		return nil, ErrAlreadyClaimed
+		return nil, NewApiErrS(409, "already_claimed", "place '%s' already claimed", p.ID)
 	}
 
 	// Reject duplicate pending claims by the same user.
@@ -95,7 +95,7 @@ func SubmitClaim(ctx context.Context, userID string, in SubmitClaimInput) (*mode
 		"status":   models.StatusPending,
 	})
 	if existing.Err() == nil {
-		return nil, ErrPendingClaimExists
+		return nil, NewApiErrS(409, "pending_claim_exists", "you already have a pending claim for place '%s'", p.ID)
 	}
 
 	now := time.Now().UTC()

@@ -24,7 +24,7 @@ var allowedUsages = map[string]bool{
 
 func UploadFile(ctx context.Context, userID, usage string, fh *multipart.FileHeader) (*models.File, error) {
 	if !allowedUsages[usage] {
-		return nil, ErrBadInput
+		return nil, NewApiErr("bad_input", "invalid usage: %s", usage)
 	}
 
 	ext := strings.TrimPrefix(strings.ToLower(filepath.Ext(fh.Filename)), ".")

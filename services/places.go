@@ -110,7 +110,7 @@ func GetPlaceView(ctx context.Context, idOrSlug string, viewerID *string, viewer
 			}
 		}
 		if !allowed {
-			return nil, ErrNotFound
+			return nil, NewApiErrS(404, "not_found", "place not found: %s", idOrSlug)
 		}
 	}
 	return NewPlaceView(*p), nil
@@ -119,7 +119,7 @@ func GetPlaceView(ctx context.Context, idOrSlug string, viewerID *string, viewer
 func CreatePlace(ctx context.Context, creatorID string, in CreatePlaceInput) (*models.Place, error) {
 	catID, ok := ResolveCategoryID(ctx, in.CategoryID)
 	if !ok {
-		return nil, ErrBadInput
+		return nil, NewApiErr("bad_input", "category not found: %s", in.CategoryID)
 	}
 
 	atc, err := utils.ResolveSOATOID(ctx, in.Lat, in.Lon)
@@ -166,7 +166,7 @@ func EditPlace(ctx context.Context, claimantID string, idOrSlug string, in EditP
 	}
 
 	if p.ClaimedBy == nil || *p.ClaimedBy != claimantID {
-		return nil, ErrForbidden
+		return nil, NewApiErrS(403, "forbidden", "only the claimant can edit this place")
 	}
 
 	update := bson.M{"updated_at": time.Now().UTC()}
@@ -198,7 +198,7 @@ func EditPlace(ctx context.Context, claimantID string, idOrSlug string, in EditP
 
 func SetPlaceStatus(ctx context.Context, id string, status models.Status) error {
 	if status != models.StatusPending && status != models.StatusApproved && status != models.StatusRejected {
-		return ErrBadInput
+		return NewApiErr("bad_input", "invalid status: %s", status)
 	}
 	res, err := db.Places().UpdateByID(ctx, id, bson.M{"$set": bson.M{
 		"status":     status,
@@ -208,7 +208,7 @@ func SetPlaceStatus(ctx context.Context, id string, status models.Status) error 
 		return err
 	}
 	if res.MatchedCount == 0 {
-		return ErrNotFound
+		return NewApiErrS(404, "not_found", "place not found: %s", id)
 	}
 	return nil
 }
@@ -221,7 +221,7 @@ func AdminEditPlace(ctx context.Context, id string, in AdminEditPlaceInput) erro
 	if in.CategoryID != nil {
 		catID, ok := ResolveCategoryID(ctx, *in.CategoryID)
 		if !ok {
-			return ErrBadInput
+			return NewApiErr("bad_input", "category not found: %s", *in.CategoryID)
 		}
 		update["category_id"] = catID
 	}
@@ -254,7 +254,7 @@ func AdminEditPlace(ctx context.Context, id string, in AdminEditPlaceInput) erro
 		return err
 	}
 	if res.MatchedCount == 0 {
-		return ErrNotFound
+		return NewApiErrS(404, "not_found", "place not found: %s", id)
 	}
 	return nil
 }
@@ -272,7 +272,7 @@ func DeletePlaceCascade(ctx context.Context, id string) error {
 		return err
 	}
 	if res.DeletedCount == 0 {
-		return ErrNotFound
+		return NewApiErrS(404, "not_found", "place not found: %s", id)
 	}
 	return nil
 }
@@ -284,7 +284,7 @@ func FindPlaceByIDOrSlug(ctx context.Context, idOrSlug string) (*models.Place, e
 	}}).Decode(&p)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, ErrNotFound
+			return nil, NewApiErrS(404, "not_found", "place not found: %s", idOrSlug)
 		}
 		return nil, err
 	}

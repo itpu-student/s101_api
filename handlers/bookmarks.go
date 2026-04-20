@@ -1,8 +1,6 @@
 package handlers
 
 import (
-	"errors"
-
 	"github.com/gin-gonic/gin"
 	"github.com/itpu-student/s101_api/middleware"
 	"github.com/itpu-student/s101_api/services"
@@ -15,8 +13,7 @@ func ListBookmarks(c *gin.Context) {
 	paging := utils.ParsePaging(c)
 
 	view, err := services.ListBookmarks(c.Request.Context(), u.ID, paging)
-	if err != nil {
-		utils.Internal(c, "bookmarks list failed")
+	if hasErr(c, err) {
 		return
 	}
 	utils.OK(c, view)
@@ -28,13 +25,7 @@ func AddBookmark(c *gin.Context) {
 	placeID := c.Param("placeId")
 
 	b, already, err := services.AddBookmark(c.Request.Context(), u.ID, placeID)
-	if err != nil {
-		switch {
-		case errors.Is(err, services.ErrNotFound):
-			utils.NotFound(c, "place not found")
-		default:
-			utils.Internal(c, "bookmark insert failed")
-		}
+	if hasErr(c, err) {
 		return
 	}
 
@@ -42,7 +33,6 @@ func AddBookmark(c *gin.Context) {
 		c.Status(208) // http.StatusAlreadyReported
 		return
 	}
-
 
 	utils.Created(c, b)
 }
@@ -52,8 +42,7 @@ func RemoveBookmark(c *gin.Context) {
 	u := middleware.CurrentUser(c)
 	placeID := c.Param("placeId")
 
-	if err := services.RemoveBookmark(c.Request.Context(), u.ID, placeID); err != nil {
-		utils.Internal(c, "bookmark delete failed")
+	if hasErr(c, services.RemoveBookmark(c.Request.Context(), u.ID, placeID)) {
 		return
 	}
 	utils.NoContent(c)

@@ -47,7 +47,7 @@ func SetUserBlocked(ctx context.Context, id string, blocked bool) error {
 		return err
 	}
 	if res.MatchedCount == 0 {
-		return ErrNotFound
+		return NewApiErrS(404, "not_found", "user not found: %s", id)
 	}
 	return nil
 }
@@ -57,7 +57,7 @@ func GetPublicUserView(ctx context.Context, id string) (*PublicUserView, error) 
 	err := db.Users().FindOne(ctx, bson.M{"_id": id}).Decode(&u)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, ErrNotFound
+			return nil, NewApiErrS(404, "not_found", "user not found: %s", id)
 		}
 		return nil, err
 	}
@@ -76,7 +76,7 @@ func UpdateMe(ctx context.Context, id string, in UpdateMeInput) (*models.PublicU
 	if in.Username != nil {
 		un := strings.ToLower(strings.TrimSpace(*in.Username))
 		if !reUsername.MatchString(un) {
-			return nil, ErrBadInput
+			return nil, NewApiErr("username_invalid", "username '%s' is invalid, only letters, digits, underscore allowed", un)
 		}
 		// check uniqueness
 		var existing models.User
@@ -85,7 +85,7 @@ func UpdateMe(ctx context.Context, id string, in UpdateMeInput) (*models.PublicU
 			"_id":      bson.M{"$ne": id},
 		}).Decode(&existing)
 		if err == nil {
-			return nil, ErrConflict
+			return nil, NewApiErrS(409, "username_taken", "username '%s' already taken", un)
 		}
 		update["username"] = un
 	}
@@ -97,7 +97,7 @@ func UpdateMe(ctx context.Context, id string, in UpdateMeInput) (*models.PublicU
 		return nil, err
 	}
 	if res.MatchedCount == 0 {
-		return nil, ErrNotFound
+		return nil, NewApiErrS(404, "not_found", "user not found: %s", id)
 	}
 	var u models.User
 	err = db.Users().FindOne(ctx, bson.M{"_id": id}).Decode(&u)
@@ -119,7 +119,7 @@ func DeleteUserCascade(ctx context.Context, id string) error {
 		return err
 	}
 	if res.DeletedCount == 0 {
-		return ErrNotFound
+		return NewApiErrS(404, "not_found", "user not found: %s", id)
 	}
 	return nil
 }

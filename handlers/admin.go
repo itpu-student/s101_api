@@ -1,8 +1,6 @@
 package handlers
 
 import (
-	"errors"
-
 	"github.com/gin-gonic/gin"
 	"github.com/itpu-student/s101_api/middleware"
 	"github.com/itpu-student/s101_api/models"
@@ -18,8 +16,7 @@ func AdminListPlaces(c *gin.Context) {
 	page, err := services.ListPlacesAdmin(c.Request.Context(), services.PlaceFilter{
 		Status: parseStatusQuery(c.Query("status")),
 	}, paging)
-	if err != nil {
-		utils.Internal(c, "place list failed")
+	if hasErr(c, err) {
 		return
 	}
 	utils.OK(c, page)
@@ -29,53 +26,34 @@ func AdminListPlaces(c *gin.Context) {
 func AdminSetPlaceStatus(c *gin.Context) {
 	var in services.SetPlaceStatusInput
 	if err := c.ShouldBindJSON(&in); err != nil {
-		utils.BadRequest(c, err.Error())
+		hasErr(c, services.NewApiErr("bad_input", "%s", err.Error()))
 		return
 	}
-	err := services.SetPlaceStatus(c.Request.Context(), c.Param("id"), in.Status)
-	switch {
-	case errors.Is(err, services.ErrBadInput):
-		utils.BadRequest(c, "status must be pending, approved, or rejected")
-	case errors.Is(err, services.ErrNotFound):
-		utils.NotFound(c, "place not found")
-	case err != nil:
-		utils.Internal(c, "status update failed")
-	default:
-		utils.OK(c, services.Ok{Ok: true})
+	if hasErr(c, services.SetPlaceStatus(c.Request.Context(), c.Param("id"), in.Status)) {
+		return
 	}
+	utils.OK(c, services.Ok{Ok: true})
 }
 
 // PUT /api/admin/places/:id   — admin can edit arbitrary fields.
 func AdminEditPlace(c *gin.Context) {
 	var in services.AdminEditPlaceInput
 	if err := c.ShouldBindJSON(&in); err != nil {
-		utils.BadRequest(c, err.Error())
+		hasErr(c, services.NewApiErr("bad_input", "%s", err.Error()))
 		return
 	}
-	err := services.AdminEditPlace(c.Request.Context(), c.Param("id"), in)
-	switch {
-	case errors.Is(err, services.ErrBadInput):
-		utils.BadRequest(c, "invalid category")
-	case errors.Is(err, services.ErrNotFound):
-		utils.NotFound(c, "place not found")
-	case err != nil:
-		utils.Internal(c, "place update failed")
-	default:
-		utils.OK(c, services.Ok{Ok: true})
+	if hasErr(c, services.AdminEditPlace(c.Request.Context(), c.Param("id"), in)) {
+		return
 	}
+	utils.OK(c, services.Ok{Ok: true})
 }
 
 // DELETE /api/admin/places/:id
 func AdminDeletePlace(c *gin.Context) {
-	err := services.DeletePlaceCascade(c.Request.Context(), c.Param("id"))
-	switch {
-	case errors.Is(err, services.ErrNotFound):
-		utils.NotFound(c, "place not found")
-	case err != nil:
-		utils.Internal(c, "place delete failed")
-	default:
-		utils.NoContent(c)
+	if hasErr(c, services.DeletePlaceCascade(c.Request.Context(), c.Param("id"))) {
+		return
 	}
+	utils.NoContent(c)
 }
 
 // ----- reviews -----
@@ -87,31 +65,24 @@ func AdminListReviews(c *gin.Context) {
 	}
 	page, err := services.ListReviewsAdmin(c.Request.Context(),
 		services.ReviewFilter{PlaceID: pid}, utils.ParsePaging(c))
-	if err != nil {
-		utils.Internal(c, "review list failed")
+	if hasErr(c, err) {
 		return
 	}
 	utils.OK(c, page)
 }
 
 func AdminDeleteReview(c *gin.Context) {
-	err := services.AdminDeleteReview(c.Request.Context(), c.Param("id"))
-	switch {
-	case errors.Is(err, services.ErrNotFound):
-		utils.NotFound(c, "review not found")
-	case err != nil:
-		utils.Internal(c, "review delete failed")
-	default:
-		utils.NoContent(c)
+	if hasErr(c, services.AdminDeleteReview(c.Request.Context(), c.Param("id"))) {
+		return
 	}
+	utils.NoContent(c)
 }
 
 // ----- users -----
 
 func AdminListUsers(c *gin.Context) {
 	page, err := services.ListUsersAdmin(c.Request.Context(), utils.ParsePaging(c))
-	if err != nil {
-		utils.Internal(c, "user list failed")
+	if hasErr(c, err) {
 		return
 	}
 	utils.OK(c, page)
@@ -121,18 +92,13 @@ func AdminListUsers(c *gin.Context) {
 func AdminBlockUser(c *gin.Context) {
 	var in services.BlockUserInput
 	if err := c.ShouldBindJSON(&in); err != nil {
-		utils.BadRequest(c, err.Error())
+		hasErr(c, services.NewApiErr("bad_input", "%s", err.Error()))
 		return
 	}
-	err := services.SetUserBlocked(c.Request.Context(), c.Param("id"), in.Blocked)
-	switch {
-	case errors.Is(err, services.ErrNotFound):
-		utils.NotFound(c, "user not found")
-	case err != nil:
-		utils.Internal(c, "user update failed")
-	default:
-		utils.OK(c, services.Ok{Ok: true, Blocked: &in.Blocked})
+	if hasErr(c, services.SetUserBlocked(c.Request.Context(), c.Param("id"), in.Blocked)) {
+		return
 	}
+	utils.OK(c, services.Ok{Ok: true, Blocked: &in.Blocked})
 }
 
 // ----- claims -----
@@ -141,8 +107,7 @@ func AdminListClaims(c *gin.Context) {
 	page, err := services.ListClaimsAdmin(c.Request.Context(), services.ClaimFilter{
 		Status: parseStatusQuery(c.Query("status")),
 	}, utils.ParsePaging(c))
-	if err != nil {
-		utils.Internal(c, "claim list failed")
+	if hasErr(c, err) {
 		return
 	}
 	utils.OK(c, page)
@@ -153,30 +118,20 @@ func AdminReviewClaim(c *gin.Context) {
 	a := middleware.CurrentAdmin(c)
 	var in services.ReviewClaimInput
 	if err := c.ShouldBindJSON(&in); err != nil {
-		utils.BadRequest(c, err.Error())
+		hasErr(c, services.NewApiErr("bad_input", "%s", err.Error()))
 		return
 	}
-	err := services.ReviewClaim(c.Request.Context(), c.Param("id"), in.Status, a.ID)
-	switch {
-	case errors.Is(err, services.ErrBadInput):
-		utils.BadRequest(c, "status must be approved or rejected")
-	case errors.Is(err, services.ErrNotFound):
-		utils.NotFound(c, "claim or place not found")
-	case errors.Is(err, services.ErrConflict):
-		utils.Conflict(c, "place already claimed by another user")
-	case err != nil:
-		utils.Internal(c, "claim update failed")
-	default:
-		utils.OK(c, services.Ok{Ok: true, Status: &in.Status})
+	if hasErr(c, services.ReviewClaim(c.Request.Context(), c.Param("id"), in.Status, a.ID)) {
+		return
 	}
+	utils.OK(c, services.Ok{Ok: true, Status: &in.Status})
 }
 
 // ----- categories -----
 
 func AdminListCategories(c *gin.Context) {
 	cats, err := services.ListCategories(c.Request.Context())
-	if err != nil {
-		utils.Internal(c, "category list failed")
+	if hasErr(c, err) {
 		return
 	}
 	utils.OK(c, cats)
@@ -186,18 +141,13 @@ func AdminListCategories(c *gin.Context) {
 func AdminEditCategory(c *gin.Context) {
 	var in services.EditCategoryInput
 	if err := c.ShouldBindJSON(&in); err != nil {
-		utils.BadRequest(c, err.Error())
+		hasErr(c, services.NewApiErr("bad_input", "%s", err.Error()))
 		return
 	}
-	err := services.EditCategory(c.Request.Context(), c.Param("id"), in)
-	switch {
-	case errors.Is(err, services.ErrNotFound):
-		utils.NotFound(c, "category not found")
-	case err != nil:
-		utils.Internal(c, "category update failed")
-	default:
-		utils.OK(c, services.Ok{Ok: true})
+	if hasErr(c, services.EditCategory(c.Request.Context(), c.Param("id"), in)) {
+		return
 	}
+	utils.OK(c, services.Ok{Ok: true})
 }
 
 // parseStatusQuery turns the ?status= query param into a *models.Status

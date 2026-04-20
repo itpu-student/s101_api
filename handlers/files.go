@@ -1,8 +1,6 @@
 package handlers
 
 import (
-	"errors"
-
 	"github.com/gin-gonic/gin"
 	"github.com/itpu-student/s101_api/middleware"
 	"github.com/itpu-student/s101_api/services"
@@ -15,17 +13,12 @@ func UploadFile(c *gin.Context) {
 	usage := c.PostForm("usage")
 	fh, err := c.FormFile("file")
 	if err != nil {
-		utils.BadRequest(c, "file is required")
+		hasErr(c, services.NewApiErr("bad_input", "file is required"))
 		return
 	}
 
 	f, err := services.UploadFile(c.Request.Context(), u.ID, usage, fh)
-	if err != nil {
-		if errors.Is(err, services.ErrBadInput) {
-			utils.BadRequest(c, "invalid usage")
-			return
-		}
-		utils.Internal(c, "upload failed")
+	if hasErr(c, err) {
 		return
 	}
 

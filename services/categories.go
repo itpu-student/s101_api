@@ -35,7 +35,7 @@ func EditCategory(ctx context.Context, id string, in EditCategoryInput) error {
 		return err
 	}
 	if res.MatchedCount == 0 {
-		return ErrNotFound
+		return NewApiErrS(404, "not_found", "category not found: %s", id)
 	}
 	return nil
 }

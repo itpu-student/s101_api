@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"errors"
 	"strconv"
 	"strings"
 
@@ -29,13 +28,12 @@ func ListPlaces(c *gin.Context) {
 		filter.NearLat = &lat
 		filter.NearLon = &lon
 	} else if sort == "nearest" {
-		utils.BadRequest(c, "sort=nearest requires near=lat,lon")
+		hasErr(c, services.NewApiErr("bad_input", "sort=nearest requires near=lat,lon"))
 		return
 	}
 
 	page, err := services.ListPlaces(c.Request.Context(), filter, paging)
-	if err != nil {
-		utils.Internal(c, "place list failed")
+	if hasErr(c, err) {
 		return
 	}
 	utils.OK(c, page)
@@ -52,12 +50,7 @@ func GetPlace(c *gin.Context) {
 	}
 
 	view, err := services.GetPlaceView(c.Request.Context(), c.Param("id"), viewerID, viewerTyp)
-	if err != nil {
-		if errors.Is(err, services.ErrNotFound) {
-			utils.NotFound(c, "place not found")
-			return
-		}
-		utils.Internal(c, "place lookup failed")
+	if hasErr(c, err) {
 		return
 	}
 	utils.OK(c, view)
@@ -68,17 +61,12 @@ func CreatePlace(c *gin.Context) {
 	u := middleware.CurrentUser(c)
 	var in services.CreatePlaceInput
 	if err := c.ShouldBindJSON(&in); err != nil {
-		utils.BadRequest(c, err.Error())
+		hasErr(c, services.NewApiErr("bad_input", "%s", err.Error()))
 		return
 	}
 
 	p, err := services.CreatePlace(c.Request.Context(), u.ID, in)
-	if err != nil {
-		if errors.Is(err, services.ErrBadInput) {
-			utils.BadRequest(c, "invalid category")
-			return
-		}
-		utils.Internal(c, "place creation failed")
+	if hasErr(c, err) {
 		return
 	}
 	utils.Created(c, p)
@@ -89,20 +77,12 @@ func EditPlace(c *gin.Context) {
 	u := middleware.CurrentUser(c)
 	var in services.EditPlaceInput
 	if err := c.ShouldBindJSON(&in); err != nil {
-		utils.BadRequest(c, err.Error())
+		hasErr(c, services.NewApiErr("bad_input", "%s", err.Error()))
 		return
 	}
 
 	view, err := services.EditPlace(c.Request.Context(), u.ID, c.Param("id"), in)
-	if err != nil {
-		switch {
-		case errors.Is(err, services.ErrNotFound):
-			utils.NotFound(c, "place not found")
-		case errors.Is(err, services.ErrForbidden):
-			utils.Forbidden(c, "only the claimant can edit this place")
-		default:
-			utils.Internal(c, "place update failed")
-		}
+	if hasErr(c, err) {
 		return
 	}
 	utils.OK(c, view)

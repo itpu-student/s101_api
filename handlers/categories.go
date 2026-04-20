@@ -9,8 +9,7 @@ import (
 // GET /api/categories
 func ListCategories(c *gin.Context) {
 	cats, err := services.ListCategories(c.Request.Context())
-	if err != nil {
-		utils.Internal(c, "categories list failed")
+	if hasErr(c, err) {
 		return
 	}
 	utils.OK(c, cats)

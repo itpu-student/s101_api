@@ -1,8 +1,6 @@
 package handlers
 
 import (
-	"errors"
-
 	"github.com/gin-gonic/gin"
 	"github.com/itpu-student/s101_api/middleware"
 	"github.com/itpu-student/s101_api/services"
@@ -17,18 +15,12 @@ func ListPlaceReviews(c *gin.Context) {
 
 	// We still need the place ID if a slug was provided for the filter
 	p, err := services.FindPlaceByIDOrSlug(c.Request.Context(), c.Param("id"))
-	if err != nil {
-		if errors.Is(err, services.ErrNotFound) {
-			utils.NotFound(c, "place not found")
-			return
-		}
-		utils.Internal(c, "place lookup failed")
+	if hasErr(c, err) {
 		return
 	}
 
 	page, err := services.ListPlaceReviews(c.Request.Context(), p.ID, all, paging)
-	if err != nil {
-		utils.Internal(c, "review list failed")
+	if hasErr(c, err) {
 		return
 	}
 	utils.OK(c, page)
@@ -39,20 +31,12 @@ func CreateReview(c *gin.Context) {
 	u := middleware.CurrentUser(c)
 	var in services.CreateReviewInput
 	if err := c.ShouldBindJSON(&in); err != nil {
-		utils.BadRequest(c, err.Error())
+		hasErr(c, services.NewApiErr("bad_input", "%s", err.Error()))
 		return
 	}
 
 	r, err := services.CreateReview(c.Request.Context(), u.ID, c.Param("id"), in)
-	if err != nil {
-		switch {
-		case errors.Is(err, services.ErrNotFound):
-			utils.NotFound(c, "place not found")
-		case errors.Is(err, services.ErrForbidden):
-			utils.Forbidden(c, "cannot review a non-approved place")
-		default:
-			utils.Internal(c, "review creation failed")
-		}
+	if hasErr(c, err) {
 		return
 	}
 	utils.Created(c, r)
@@ -61,15 +45,7 @@ func CreateReview(c *gin.Context) {
 // DELETE /api/reviews/:id   — author only
 func DeleteReview(c *gin.Context) {
 	u := middleware.CurrentUser(c)
-	if err := services.DeleteUserReview(c.Request.Context(), u.ID, c.Param("id")); err != nil {
-		switch {
-		case errors.Is(err, services.ErrNotFound):
-			utils.NotFound(c, "review not found")
-		case errors.Is(err, services.ErrForbidden):
-			utils.Forbidden(c, "not your review")
-		default:
-			utils.Internal(c, "review delete failed")
-		}
+	if hasErr(c, services.DeleteUserReview(c.Request.Context(), u.ID, c.Param("id"))) {
 		return
 	}
 	utils.NoContent(c)

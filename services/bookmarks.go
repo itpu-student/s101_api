@@ -67,7 +67,7 @@ func AddBookmark(ctx context.Context, userID, placeID string) (*models.Bookmark,
 	err := db.Places().FindOne(ctx, bson.M{"_id": placeID}).Err()
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, false, ErrNotFound
+			return nil, false, NewApiErrS(404, "not_found", "place not found: %s", placeID)
 		}
 		return nil, false, err
 	}

@@ -41,7 +41,7 @@ func AdminDeleteReview(ctx context.Context, id string) error {
 	err := db.Reviews().FindOne(ctx, bson.M{"_id": id}).Decode(&r)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return ErrNotFound
+			return NewApiErrS(404, "not_found", "review not found: %s", id)
 		}
 		return err
 	}
@@ -88,7 +88,7 @@ func CreateReview(ctx context.Context, userID string, placeIDOrSlug string, in C
 		return nil, err
 	}
 	if p.Status != models.StatusApproved {
-		return nil, ErrForbidden
+		return nil, NewApiErrS(403, "forbidden", "cannot review place that is not approved")
 	}
 
 	// Step 1 — demote any existing latest review for (place, user).
@@ -129,12 +129,12 @@ func DeleteUserReview(ctx context.Context, userID string, reviewID string) error
 	err := db.Reviews().FindOne(ctx, bson.M{"_id": reviewID}).Decode(&r)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return ErrNotFound
+			return NewApiErrS(404, "not_found", "review not found: %s", reviewID)
 		}
 		return err
 	}
 	if r.UserID == nil || *r.UserID != userID {
-		return ErrForbidden
+		return NewApiErrS(403, "forbidden", "only the author can delete this review")
 	}
 	_, err = db.Reviews().DeleteOne(ctx, bson.M{"_id": reviewID})
 	if err != nil {

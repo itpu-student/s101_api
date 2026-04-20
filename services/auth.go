@@ -16,7 +16,7 @@ import (
 // returning user -> refresh username from TG), and issues a JWT.
 func VerifyCode(ctx context.Context, in VerifyCodeInput) (*VerifyCodeOutput, error) {
 	if len(in.Code) != 6 {
-		return nil, ErrBadInput
+		return nil, NewApiErr("bad_input", "code must be 6 digits")
 	}
 
 	var otp models.OTPCode
@@ -27,7 +27,7 @@ func VerifyCode(ctx context.Context, in VerifyCodeInput) (*VerifyCodeOutput, err
 	}).Decode(&otp)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, ErrNotFound
+			return nil, NewApiErrS(404, "not_found", "invalid or expired code")
 		}
 		return nil, err
 	}
@@ -66,7 +66,7 @@ func VerifyCode(ctx context.Context, in VerifyCodeInput) (*VerifyCodeOutput, err
 	}
 
 	if user.Blocked {
-		return nil, ErrForbidden
+		return nil, NewApiErrS(403, "forbidden", "user is blocked")
 	}
 
 	token, err := utils.IssueJWT(user.ID, utils.TypUser)
