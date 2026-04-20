@@ -78,7 +78,7 @@ Envelope:
 User avatars and place/review images are **file keys** (not full URLs), e.g. `"a8f3...e21.jpg"`.
 
 To upload: call `POST /api/files/upload` (§12). It returns `{ file_id, key, url, usage }`.
-- Save `key` into `avatar_key` (user) or append to `images` (place/review).
+- Save `key` into `avatar_key` (user), `logo_key` (place), or append to `images` (place/review).
 - To display: prepend the static base → `{BASE_URL}/static/{key}`.
 
 ---
@@ -124,6 +124,7 @@ To upload: call `POST /api/files/upload` (§12). It returns `{ file_id, key, url
   "lat": 41.31,
   "lon": 69.28,
   "location": { "type": "Point", "coordinates": [69.28, 41.31] },
+  "logo_key": "<file-key>",
   "images": ["<file-key>"],
   "weekly_hours": {
     "mon": [{ "open": "09:00", "close": "22:00" }],
@@ -438,6 +439,7 @@ Create place (starts `status=0` pending).
   "description": { "en": "...", "uz": "..." },
   "lat": 41.31,
   "lon": 69.28,
+  "logo_key": "<file-key>",
   "images": ["<file-key>"],
   "weekly_hours": { "mon": [{ "open": "09:00", "close": "22:00" }] }
 }
@@ -463,6 +465,7 @@ Edit. **Only `claimed_by` may call.** `:id` = **UUID only** (writes address stab
   "phone": "+998...",
   "description": { "en": "...", "uz": "..." },
   "weekly_hours": { ... },
+  "logo_key": "<file-key>",
   "images": ["<file-key>"]
 }
 ```
@@ -675,6 +678,7 @@ Edit any field; all optional. Sending both `lat` and `lon` updates geo `location
   "description": { "en": "...", "uz": "..." },
   "lat": 41.31,
   "lon": 69.28,
+  "logo_key": "<file-key>",
   "images": ["<file-key>"],
   "weekly_hours": { ... }
 }
