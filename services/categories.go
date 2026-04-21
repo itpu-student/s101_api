@@ -31,6 +31,9 @@ func EditCategory(ctx context.Context, id string, in EditCategoryInput) error {
 	if in.Desc != nil {
 		update["desc"] = *in.Desc
 	}
+	if in.Emoji != nil {
+		update["emoji"] = *in.Emoji
+	}
 	res, err := db.Categories().UpdateByID(ctx, id, bson.M{"$set": update})
 	if err != nil {
 		return err

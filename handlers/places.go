@@ -18,7 +18,7 @@ func ListPlaces(c *gin.Context) {
 
 	filter := services.PlaceFilter{}
 	if cat := c.Query("category_id"); cat != "" {
-		filter.CategoryId = &cat
+		filter.CategoryId = cat
 	}
 	if q := strings.TrimSpace(c.Query("query")); q != "" {
 		filter.Query = &q

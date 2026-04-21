@@ -43,8 +43,8 @@ func ListPlaces(ctx context.Context, f PlaceFilter, paging utils.Paging) (*Page[
 		filter["status"] = *f.Status
 	}
 
-	if f.CategoryId != nil {
-		filter["category_id"] = *f.CategoryId
+	if f.CategoryId != "" {
+		filter["category_id"] = f.CategoryId
 	}
 
 	if f.Query != nil {

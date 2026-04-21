@@ -31,8 +31,9 @@ type ReviewClaimInput struct {
 }
 
 type EditCategoryInput struct {
-	Name *models.I18nText `json:"name"`
-	Desc *models.I18nText `json:"desc"`
+	Name  *models.I18nText `json:"name"`
+	Desc  *models.I18nText `json:"desc"`
+	Emoji *string          `json:"emoji"`
 }
 
 type AdminLoginInput struct {
