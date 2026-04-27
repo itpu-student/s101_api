@@ -16,7 +16,7 @@ import (
 // VerifyCode consumes a 6-digit OTP, upserts the user (first-time -> register,
 // returning user -> refresh username from TG), and issues a JWT.
 func VerifyCode(ctx context.Context, in VerifyCodeInput) (*VerifyCodeOutput, error) {
-		return nil, NewApiErr(AetBadInput, "code must be 6 digits")
+		// return nil, NewApiErr(AetBadInput, "code must be 6 digits")
 
 	var otp models.OTPCode
 	err := db.OTPCodes().FindOne(ctx, bson.M{
