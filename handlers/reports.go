@@ -8,6 +8,12 @@ import (
 	"github.com/itpu-student/s101_api/utils"
 )
 
+// GET /api/reports/meta — public. Lists report types + char limit so the
+// frontend can render the form without hardcoding the enum.
+func ReportMeta(c *gin.Context) {
+	utils.OK(c, services.GetReportMeta())
+}
+
 // POST /api/reports
 func SubmitReport(c *gin.Context) {
 	u := middleware.CurrentUser(c)
@@ -45,22 +51,45 @@ func DeleteMyReport(c *gin.Context) {
 	utils.NoContent(c)
 }
 
-// GET /api/reports/mine
+// GET /api/reports/:id — must be the reporter's own.
+func GetMyReport(c *gin.Context) {
+	u := middleware.CurrentUser(c)
+	r, err := services.GetReport(c.Request.Context(), c.Param("id"), u.ID, false)
+	if hasErr(c, err) {
+		return
+	}
+	utils.OK(c, r)
+}
+
+// GET /api/admin/reports/:id — admin sees any report with reporter + reported_user.
+func AdminGetReport(c *gin.Context) {
+	r, err := services.GetReport(c.Request.Context(), c.Param("id"), "", true)
+	if hasErr(c, err) {
+		return
+	}
+	utils.OK(c, r)
+}
+
+// GET /api/reports/mine?status=
 func MyReports(c *gin.Context) {
 	u := middleware.CurrentUser(c)
-	page, err := services.ListMyReports(c.Request.Context(), u.ID, utils.ParsePaging(c))
+	page, err := services.ListMyReports(c.Request.Context(), u.ID,
+		parseReportStatusQuery(c.Query("status")), utils.ParsePaging(c))
 	if hasErr(c, err) {
 		return
 	}
 	utils.OK(c, page)
 }
 
-// GET /api/admin/reports?status=&type=&target_type=&reported_user_id=&admin_id=
+// GET /api/admin/reports?status=&type=&target_type=&target_id=&reported_user_id=&admin_id=
 func AdminListReports(c *gin.Context) {
 	f := services.ReportFilter{
 		Status:     parseReportStatusQuery(c.Query("status")),
 		Type:       parseReportTypeQuery(c.Query("type")),
 		TargetType: parseReportTargetTypeQuery(c.Query("target_type")),
+	}
+	if v := c.Query("target_id"); v != "" {
+		f.TargetID = &v
 	}
 	if v := c.Query("reported_user_id"); v != "" {
 		f.ReportedUserID = &v

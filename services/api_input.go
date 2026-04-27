@@ -109,6 +109,7 @@ type ReportFilter struct {
 	Status         *models.ReportStatus
 	Type           *models.ReportType
 	TargetType     *models.ReportTargetType
+	TargetID       *string
 	ReportedUserID *string
 	AdminID        *string
 }

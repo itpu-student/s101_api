@@ -18,7 +18,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-func SubmitReport(ctx context.Context, reporterID string, in SubmitReportInput) (*models.Report, error) {
+func SubmitReport(ctx context.Context, reporterID string, in SubmitReportInput) (*ReportView, error) {
 	if _, ok := models.ParseReportTargetType(string(in.TargetType)); !ok {
 		return nil, NewApiErr(AetBadInput, "target_type must be 'review' or 'place'")
 	}
@@ -30,7 +30,6 @@ func SubmitReport(ctx context.Context, reporterID string, in SubmitReportInput) 
 			return nil, NewApiErr(AetBadInput, "invalid report type: %s", *in.Type)
 		}
 	}
-	// Rule: at least one of (Type, Text) must be set.
 	if in.Type == nil && in.Text == "" {
 		return nil, NewApiErr(AetBadInput, "either type or text is required")
 	}
@@ -38,13 +37,11 @@ func SubmitReport(ctx context.Context, reporterID string, in SubmitReportInput) 
 		return nil, NewApiErrS(400, AetTextTooLong, "text exceeds %d chars", config.Cfg.TextInputLimit)
 	}
 
-	// Load target to verify it exists, and to denormalize reported_user_id.
 	reportedUserID, err := loadTargetOwner(ctx, in.TargetType, in.TargetID)
 	if err != nil {
 		return nil, err
 	}
 
-	// Reject duplicate pending report from same user against same target.
 	existing := db.Reports().FindOne(ctx, bson.M{
 		"user_id":     reporterID,
 		"target_type": in.TargetType,
@@ -52,8 +49,7 @@ func SubmitReport(ctx context.Context, reporterID string, in SubmitReportInput) 
 		"status":      models.ReportStatusPending,
 	})
 	if existing.Err() == nil {
-		return nil, NewApiErrS(409, AetDuplicateOpenReport,
-			"you already have an open report for this target")
+		return nil, NewApiErrS(409, AetDuplicateOpenReport, "you already have an open report for this target")
 	}
 
 	now := time.Now().UTC()
@@ -72,10 +68,10 @@ func SubmitReport(ctx context.Context, reporterID string, in SubmitReportInput) 
 	if _, err := db.Reports().InsertOne(ctx, r); err != nil {
 		return nil, err
 	}
-	return &r, nil
+	return buildReportView(ctx, &r, false), nil
 }
 
-func EditMyReport(ctx context.Context, reporterID, reportID string, in EditReportInput) (*models.Report, error) {
+func EditMyReport(ctx context.Context, reporterID, reportID string, in EditReportInput) (*ReportView, error) {
 	var r models.Report
 	if err := db.Reports().FindOne(ctx, bson.M{"_id": reportID}).Decode(&r); err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
@@ -90,7 +86,6 @@ func EditMyReport(ctx context.Context, reporterID, reportID string, in EditRepor
 		return nil, NewApiErrS(409, AetReportLocked, "report is no longer pending")
 	}
 
-	// Compute resulting state to enforce "at least one of (Type, Text)".
 	nextType := r.Type
 	if in.Type != nil {
 		if string(*in.Type) == "" {
@@ -130,7 +125,7 @@ func EditMyReport(ctx context.Context, reporterID, reportID string, in EditRepor
 	if err := db.Reports().FindOne(ctx, bson.M{"_id": reportID}).Decode(&r); err != nil {
 		return nil, err
 	}
-	return &r, nil
+	return buildReportView(ctx, &r, false), nil
 }
 
 func DeleteMyReport(ctx context.Context, reporterID, reportID string) error {
@@ -151,8 +146,28 @@ func DeleteMyReport(ctx context.Context, reporterID, reportID string) error {
 	return err
 }
 
-func ListMyReports(ctx context.Context, userID string, paging utils.Paging) (*Page[models.Report], error) {
+// GetReport returns a single report. If isAdmin is true, no ownership check
+// and reporter/reported_user are populated. Otherwise the caller must be the
+// reporter.
+func GetReport(ctx context.Context, reportID, viewerUserID string, isAdmin bool) (*ReportView, error) {
+	var r models.Report
+	if err := db.Reports().FindOne(ctx, bson.M{"_id": reportID}).Decode(&r); err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, NewApiErrS(404, AetNotFound, "report not found: %s", reportID)
+		}
+		return nil, err
+	}
+	if !isAdmin && r.UserID != viewerUserID {
+		return nil, NewApiErrS(404, AetNotFound, "report not found: %s", reportID)
+	}
+	return buildReportView(ctx, &r, isAdmin), nil
+}
+
+func ListMyReports(ctx context.Context, userID string, status *models.ReportStatus, paging utils.Paging) (*Page[ReportView], error) {
 	filter := bson.M{"user_id": userID}
+	if status != nil {
+		filter["status"] = *status
+	}
 	cur, err := db.Reports().Find(ctx, filter,
 		options.Find().SetSort(bson.D{{Key: "created_at", Value: -1}}).
 			SetSkip(paging.Skip).SetLimit(int64(paging.Limit)))
@@ -164,10 +179,10 @@ func ListMyReports(ctx context.Context, userID string, paging utils.Paging) (*Pa
 		return nil, err
 	}
 	total, _ := db.Reports().CountDocuments(ctx, filter)
-	return NewPage(items, paging, total), nil
+	return NewPage(buildReportViews(ctx, items, false), paging, total), nil
 }
 
-func ListReportsAdmin(ctx context.Context, f ReportFilter, paging utils.Paging) (*Page[models.Report], error) {
+func ListReportsAdmin(ctx context.Context, f ReportFilter, paging utils.Paging) (*Page[ReportView], error) {
 	filter := bson.M{}
 	if f.Status != nil {
 		filter["status"] = *f.Status
@@ -177,6 +192,9 @@ func ListReportsAdmin(ctx context.Context, f ReportFilter, paging utils.Paging) 
 	}
 	if f.TargetType != nil {
 		filter["target_type"] = *f.TargetType
+	}
+	if f.TargetID != nil {
+		filter["target_id"] = *f.TargetID
 	}
 	if f.ReportedUserID != nil {
 		filter["reported_user_id"] = *f.ReportedUserID
@@ -195,10 +213,10 @@ func ListReportsAdmin(ctx context.Context, f ReportFilter, paging utils.Paging) 
 		return nil, err
 	}
 	total, _ := db.Reports().CountDocuments(ctx, filter)
-	return NewPage(items, paging, total), nil
+	return NewPage(buildReportViews(ctx, items, true), paging, total), nil
 }
 
-func ReviewReport(ctx context.Context, reportID, adminID string, in ReviewReportInput) (*models.Report, error) {
+func ReviewReport(ctx context.Context, reportID, adminID string, in ReviewReportInput) (*ReportView, error) {
 	if _, ok := models.ParseReportStatus(string(in.Status)); !ok {
 		return nil, NewApiErr(AetBadInput, "invalid status: %s", in.Status)
 	}
@@ -223,7 +241,6 @@ func ReviewReport(ctx context.Context, reportID, adminID string, in ReviewReport
 
 	if in.DeleteTargetReview {
 		if err := AdminDeleteReview(ctx, r.TargetID); err != nil {
-			// AdminDeleteReview returns ApiErr; bubble up unless target already gone.
 			var ae *ApiErr
 			if !(errors.As(err, &ae) && ae.Typ == AetNotFound) {
 				return nil, err
@@ -258,11 +275,28 @@ func ReviewReport(ctx context.Context, reportID, adminID string, in ReviewReport
 	}
 
 	notifyReporter(ctx, &r)
-	return &r, nil
+	return buildReportView(ctx, &r, true), nil
 }
 
-// loadTargetOwner verifies the report target exists and returns the owner id
-// to denormalize as reported_user_id. Owner may be nil for anonymous reviews
+// GetReportMeta returns the static metadata frontends need to render report
+// forms — the list of report types with bilingual labels, and the shared text
+// input length limit.
+func GetReportMeta() *ReportMeta {
+	types := []models.ReportType{
+		models.ReportTypeSpam,
+		models.ReportTypeMisleading,
+		models.ReportTypeInappropriate,
+		models.ReportTypeProfanity,
+	}
+	out := make([]ReportTypeMeta, 0, len(types))
+	for _, t := range types {
+		out = append(out, ReportTypeMeta{Value: t, Label: t.Label()})
+	}
+	return &ReportMeta{Types: out, TextInputLimit: config.Cfg.TextInputLimit}
+}
+
+// loadTargetOwner verifies the report target exists and returns its owner id
+// (denormalized as reported_user_id). Owner may be nil for anonymous reviews
 // or places without a creator.
 func loadTargetOwner(ctx context.Context, tt models.ReportTargetType, id string) (*string, error) {
 	switch tt {
@@ -288,6 +322,96 @@ func loadTargetOwner(ctx context.Context, tt models.ReportTargetType, id string)
 	return nil, NewApiErr(AetBadInput, "unknown target_type: %s", tt)
 }
 
+// buildReportView wraps a Report with a target preview card. When includeUsers
+// is true, also embeds the reporter and the reported user (admin views).
+// Missing related rows (e.g. target deleted post-action) leave nested fields
+// nil rather than failing.
+func buildReportView(ctx context.Context, r *models.Report, includeUsers bool) *ReportView {
+	v := &ReportView{Report: *r}
+	v.Target = loadReportTarget(ctx, r.TargetType, r.TargetID)
+	if includeUsers {
+		v.Reporter = lookupPublicUser(ctx, &r.UserID)
+		v.ReportedUser = lookupPublicUser(ctx, r.ReportedUserID)
+	}
+	return v
+}
+
+func buildReportViews(ctx context.Context, rs []models.Report, includeUsers bool) []ReportView {
+	out := make([]ReportView, 0, len(rs))
+	for i := range rs {
+		out = append(out, *buildReportView(ctx, &rs[i], includeUsers))
+	}
+	return out
+}
+
+// loadReportTarget builds the uniform card for the report's target. For a
+// review, the card is anchored to the place the review is on (so the user
+// sees what context the review lives in) with the review text as content.
+// Returns nil if the target row is gone.
+func loadReportTarget(ctx context.Context, tt models.ReportTargetType, id string) *ReportTarget {
+	switch tt {
+	case models.ReportTargetPlace:
+		var p models.Place
+		if err := db.Places().FindOne(ctx, bson.M{"_id": id}).Decode(&p); err != nil {
+			return nil
+		}
+		var avatar *string
+		if p.LogoKey != "" {
+			lk := p.LogoKey
+			avatar = &lk
+		}
+		return &ReportTarget{
+			ID:        p.ID,
+			Type:      models.ReportTargetPlace,
+			Name:      p.Name,
+			AvatarKey: avatar,
+			Content:   pickI18n(p.Description),
+		}
+	case models.ReportTargetReview:
+		var rv models.Review
+		if err := db.Reviews().FindOne(ctx, bson.M{"_id": id}).Decode(&rv); err != nil {
+			return nil
+		}
+		t := &ReportTarget{
+			ID:      rv.ID,
+			Type:    models.ReportTargetReview,
+			Content: rv.Text,
+		}
+		var p models.Place
+		if err := db.Places().FindOne(ctx, bson.M{"_id": rv.PlaceID}).Decode(&p); err == nil {
+			t.Name = p.Name
+			if p.LogoKey != "" {
+				lk := p.LogoKey
+				t.AvatarKey = &lk
+			}
+		}
+		return t
+	}
+	return nil
+}
+
+// pickI18n returns the uz field, falling back to en. Used for content snippets
+// where we collapse a bilingual field into a single string.
+func pickI18n(t models.I18nText) string {
+	if t.UZ != "" {
+		return t.UZ
+	}
+	return t.EN
+}
+
+// lookupPublicUser returns the public projection for a user id, or nil if the
+// id is nil or the user no longer exists.
+func lookupPublicUser(ctx context.Context, id *string) *models.PublicUser {
+	if id == nil || *id == "" {
+		return nil
+	}
+	var u models.User
+	if err := db.Users().FindOne(ctx, bson.M{"_id": *id}).Decode(&u); err != nil {
+		return nil
+	}
+	return u.Public()
+}
+
 // notifyReporter best-effort sends an Uz Telegram DM to the reporter when an
 // admin transitions the report status. Failures are logged and swallowed.
 func notifyReporter(ctx context.Context, r *models.Report) {
@@ -298,11 +422,11 @@ func notifyReporter(ctx context.Context, r *models.Report) {
 	if u.TelegramID == "" {
 		return
 	}
-	var text string
 	resp := ""
 	if r.AdminResponse != nil {
 		resp = *r.AdminResponse
 	}
+	var text string
 	switch r.Status {
 	case models.ReportStatusInProgress:
 		text = "Hisobotingiz ko'rib chiqilmoqda."
