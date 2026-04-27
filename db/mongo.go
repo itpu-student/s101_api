@@ -48,6 +48,7 @@ func Bookmarks() *mongo.Collection     { return DB.Collection("bookmarks") }
 func OTPCodes() *mongo.Collection      { return DB.Collection("otp_codes") }
 func ClaimRequests() *mongo.Collection { return DB.Collection("claim_requests") }
 func Files() *mongo.Collection         { return DB.Collection("files") }
+func Reports() *mongo.Collection       { return DB.Collection("reports") }
 
 func EnsureIndexes(ctx context.Context) {
 
@@ -129,6 +130,27 @@ func EnsureIndexes(ctx context.Context) {
 	// Files
 	mustIdx(ctx, Files(), mongo.IndexModel{Keys: bson.D{{Key: "created_by", Value: 1}}})
 	mustIdx(ctx, Files(), mongo.IndexModel{Keys: bson.D{{Key: "usage", Value: 1}}})
+
+	// Reports — partial unique on (user_id, target_type, target_id) WHERE status=pending
+	// prevents same user filing duplicate open reports against same target,
+	// while still allowing a fresh report after the previous one is resolved.
+	mustIdx(ctx, Reports(), mongo.IndexModel{
+		Keys: bson.D{
+			{Key: "user_id", Value: 1},
+			{Key: "target_type", Value: 1},
+			{Key: "target_id", Value: 1},
+		},
+		Options: options.Index().SetUnique(true).
+			SetPartialFilterExpression(bson.M{"status": "pending"}),
+	})
+	mustIdx(ctx, Reports(), mongo.IndexModel{
+		Keys: bson.D{{Key: "status", Value: 1}, {Key: "created_at", Value: -1}},
+	})
+	mustIdx(ctx, Reports(), mongo.IndexModel{
+		Keys: bson.D{{Key: "target_type", Value: 1}, {Key: "target_id", Value: 1}},
+	})
+	mustIdx(ctx, Reports(), mongo.IndexModel{Keys: bson.D{{Key: "reported_user_id", Value: 1}}})
+	mustIdx(ctx, Reports(), mongo.IndexModel{Keys: bson.D{{Key: "admin_id", Value: 1}}})
 
 	log.Println("indexes ensured")
 }

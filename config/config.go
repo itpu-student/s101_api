@@ -3,6 +3,7 @@ package config
 import (
 	"log"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/go-shafaq/timep"
@@ -27,6 +28,8 @@ type Config struct {
 	BootstrapAdminUsername string
 	BootstrapAdminPassword string
 	BootstrapAdminName     string
+
+	TextInputLimit int
 }
 
 var Cfg *Config
@@ -48,6 +51,8 @@ func Load() *Config {
 		BootstrapAdminUsername: getEnv("BOOTSTRAP_ADMIN_USERNAME", "admin"),
 		BootstrapAdminPassword: getEnv("BOOTSTRAP_ADMIN_PASSWORD", "admin"),
 		BootstrapAdminName:     getEnv("BOOTSTRAP_ADMIN_NAME", "Admin"),
+
+		TextInputLimit: getEnvInt("TEXT_INPUT_LIMIT", 1000),
 	}
 
 	if Cfg.JWTSecret == "dev-secret-change-me" && Cfg.Env == "production" {
@@ -61,6 +66,19 @@ func getEnv(key, fallback string) string {
 		return v
 	}
 	return fallback
+}
+
+func getEnvInt(key string, fallback int) int {
+	v, ok := os.LookupEnv(key)
+	if !ok || v == "" {
+		return fallback
+	}
+	n, err := strconv.Atoi(v)
+	if err != nil {
+		log.Printf("invalid int for %s: %v, using fallback", key, err)
+		return fallback
+	}
+	return n
 }
 
 func getEnvDur(key, fallback string) time.Duration {

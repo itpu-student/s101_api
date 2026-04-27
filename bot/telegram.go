@@ -17,6 +17,10 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
+// Package-level bot instance — set by Start, read by SendDM. nil before Start
+// runs, or when TG_BOT_TOKEN is empty.
+var globalBot *bot.Bot
+
 // Start launches the TG bot long-poller. It blocks until ctx is canceled.
 // If TG_BOT_TOKEN is empty we simply log and return — handy for local dev.
 func Start(ctx context.Context) {
@@ -33,12 +37,31 @@ func Start(ctx context.Context) {
 		log.Printf("bot init failed: %v", err)
 		return
 	}
+	globalBot = b
 
 	// /start — ask the user to share their contact.
 	b.RegisterHandler(bot.HandlerTypeMessageText, "/start", bot.MatchTypeExact, startHandler)
 
 	log.Println("telegram bot started")
 	b.Start(ctx)
+}
+
+// SendDM sends a plain-text DM to the given Telegram user. No-op if the bot
+// isn't running (TG_BOT_TOKEN unset) or telegramID is empty / unparsable.
+// Errors are returned but callers typically log+swallow.
+func SendDM(ctx context.Context, telegramID string, text string) error {
+	if globalBot == nil || telegramID == "" {
+		return nil
+	}
+	chatID, err := strconv.ParseInt(telegramID, 10, 64)
+	if err != nil {
+		return err
+	}
+	_, err = globalBot.SendMessage(ctx, &bot.SendMessageParams{
+		ChatID: chatID,
+		Text:   text,
+	})
+	return err
 }
 
 func startHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
