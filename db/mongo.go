@@ -67,6 +67,10 @@ func EnsureIndexes(ctx context.Context) {
 		Keys:    bson.D{{Key: "username", Value: 1}},
 		Options: options.Index().SetUnique(true),
 	})
+	mustIdx(ctx, Admins(), mongo.IndexModel{
+		Keys:    bson.D{{Key: "created_by", Value: 1}},
+		Options: options.Index().SetSparse(true),
+	})
 
 	// Categories
 	mustIdx(ctx, Categories(), mongo.IndexModel{

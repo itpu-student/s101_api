@@ -113,3 +113,16 @@ type ReportFilter struct {
 	ReportedUserID *string
 	AdminID        *string
 }
+
+type CreateAdminInput struct {
+	Username string  `json:"username"`
+	Password string  `json:"password"`
+	Name     string  `json:"name"`
+	Power    float32 `json:"power"`
+}
+
+type EditAdminInput struct {
+	Name     *string  `json:"name"`
+	Password *string  `json:"password"`
+	Power    *float32 `json:"power"`
+}

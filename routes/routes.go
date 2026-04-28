@@ -67,25 +67,32 @@ func Register(r *gin.Engine) {
 
 	// ---- admin ----
 	admin := api.Group("/admin", middleware.RequireAdmin())
+	rw := middleware.RequireWritePrivilege()
+
 	admin.GET("/places", handlers.AdminListPlaces)
-	admin.PUT("/places/:id/status", handlers.AdminSetPlaceStatus)
-	admin.PUT("/places/:id", handlers.AdminEditPlace)
-	admin.DELETE("/places/:id", handlers.AdminDeletePlace)
+	admin.PUT("/places/:id/status", rw, handlers.AdminSetPlaceStatus)
+	admin.PUT("/places/:id", rw, handlers.AdminEditPlace)
+	admin.DELETE("/places/:id", rw, handlers.AdminDeletePlace)
 
 	admin.GET("/reviews", handlers.AdminListReviews)
-	admin.DELETE("/reviews/:id", handlers.AdminDeleteReview)
+	admin.DELETE("/reviews/:id", rw, handlers.AdminDeleteReview)
 
 	admin.GET("/users", handlers.AdminListUsers)
-	admin.PUT("/users/:id/block", handlers.AdminBlockUser)
+	admin.PUT("/users/:id/block", rw, handlers.AdminBlockUser)
 
 	admin.GET("/claims", handlers.AdminListClaims)
-	admin.PUT("/claims/:id", handlers.AdminReviewClaim)
+	admin.PUT("/claims/:id", rw, handlers.AdminReviewClaim)
 
 	admin.GET("/categories", handlers.AdminListCategories)
-	admin.PUT("/categories/:id", handlers.AdminEditCategory)
+	admin.PUT("/categories/:id", rw, handlers.AdminEditCategory)
 
 	admin.GET("/reports", handlers.AdminListReports)
 	admin.GET("/reports/:id", handlers.AdminGetReport)
-	admin.PUT("/reports/:id", handlers.AdminReviewReport)
+	admin.PUT("/reports/:id", rw, handlers.AdminReviewReport)
+
+	admin.GET("/admins", handlers.AdminListAdmins)
+	admin.POST("/admins", rw, handlers.AdminCreateAdmin)
+	admin.GET("/admins/:id", handlers.AdminGetAdmin)
+	admin.PUT("/admins/:id", rw, handlers.AdminEditAdmin)
 
 }
