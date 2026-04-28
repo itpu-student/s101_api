@@ -8,15 +8,18 @@ import (
 	"github.com/itpu-student/s101_api/db"
 	"github.com/itpu-student/s101_api/models"
 	"github.com/itpu-student/s101_api/utils"
+	. "github.com/itpu-student/s101_api/utils/api_err"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
-	. "github.com/itpu-student/s101_api/utils/api_err"
 )
 
 // VerifyCode consumes a 6-digit OTP, upserts the user (first-time -> register,
 // returning user -> refresh username from TG), and issues a JWT.
 func VerifyCode(ctx context.Context, in VerifyCodeInput) (*VerifyCodeOutput, error) {
+
+	if len(in.Code) != 6 {
 		return nil, NewApiErr(AetBadInput, "code must be 6 digits")
+	}
 
 	var otp models.OTPCode
 	err := db.OTPCodes().FindOne(ctx, bson.M{
