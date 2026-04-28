@@ -85,3 +85,31 @@ type EditPlaceInput struct {
 	LogoKey     *string             `json:"logo_key"`
 	Images      *[]string           `json:"images"`
 }
+
+type SubmitReportInput struct {
+	TargetType models.ReportTargetType `json:"target_type"`
+	TargetID   string                  `json:"target_id"`
+	Type       *models.ReportType      `json:"type"`
+	Text       string                  `json:"text"`
+}
+
+type EditReportInput struct {
+	Type *models.ReportType `json:"type"`
+	Text *string            `json:"text"`
+}
+
+type ReviewReportInput struct {
+	Status             models.ReportStatus `json:"status"`
+	AdminResponse      *string             `json:"admin_response"`
+	DeleteTargetReview bool                `json:"delete_target_review"`
+	BlockReportedUser  bool                `json:"block_reported_user"`
+}
+
+type ReportFilter struct {
+	Status         *models.ReportStatus
+	Type           *models.ReportType
+	TargetType     *models.ReportTargetType
+	TargetID       *string
+	ReportedUserID *string
+	AdminID        *string
+}

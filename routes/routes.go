@@ -53,6 +53,15 @@ func Register(r *gin.Engine) {
 	api.POST("/claims", middleware.RequireUser(), handlers.SubmitClaim)
 	api.GET("/claims/mine", middleware.RequireUser(), handlers.MyClaims)
 
+	// ---- reports ----
+	api.GET("/reports/meta", handlers.ReportMeta)
+	rep := api.Group("/reports", middleware.RequireUser())
+	rep.POST("", handlers.SubmitReport)
+	rep.GET("/mine", handlers.MyReports)
+	rep.GET("/:id", handlers.GetMyReport)
+	rep.PUT("/:id", handlers.EditMyReport)
+	rep.DELETE("/:id", handlers.DeleteMyReport)
+
 	// ---- files ----
 	api.POST("/files/upload", middleware.RequireUser(), handlers.UploadFile)
 
@@ -74,5 +83,9 @@ func Register(r *gin.Engine) {
 
 	admin.GET("/categories", handlers.AdminListCategories)
 	admin.PUT("/categories/:id", handlers.AdminEditCategory)
+
+	admin.GET("/reports", handlers.AdminListReports)
+	admin.GET("/reports/:id", handlers.AdminGetReport)
+	admin.PUT("/reports/:id", handlers.AdminReviewReport)
 
 }

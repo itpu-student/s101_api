@@ -13,5 +13,11 @@ const (
 	AetPendingClaimExists ApiErrTyp = "pending_claim_exists"
 	AetUsernameInvalid     ApiErrTyp = "username_invalid"
 	AetUsernameTaken       ApiErrTyp = "username_taken"
-	AetUnknown            ApiErrTyp = "unknown"
+
+	AetReportTargetMissing ApiErrTyp = "report_target_missing"
+	AetReportLocked        ApiErrTyp = "report_locked"
+	AetDuplicateOpenReport ApiErrTyp = "duplicate_open_report"
+	AetTextTooLong         ApiErrTyp = "text_too_long"
+
+	AetUnknown ApiErrTyp = "unknown"
 )

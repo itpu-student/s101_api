@@ -102,3 +102,33 @@ type PlaceView struct {
 func NewPlaceView(p models.Place) *PlaceView {
 	return &PlaceView{Place: p, IsOpen: utils.IsOpen(p.WeeklyHours, time.Now())}
 }
+
+// ReportTarget is a uniform preview card for whatever a report points at — a
+// review or a place. Frontend renders it the same way regardless of type.
+type ReportTarget struct {
+	ID        string                  `json:"id"`
+	Type      models.ReportTargetType `json:"type"`
+	Name      string                  `json:"name"`
+	AvatarKey *string                 `json:"avatar_key,omitempty"`
+	Content   string                  `json:"content"`
+}
+
+// ReportView is the API shape for a Report — embeds the report and adds the
+// target card plus reporter/reported_user details when the caller is admin.
+type ReportView struct {
+	models.Report
+	Target       *ReportTarget      `json:"target,omitempty"`
+	Reporter     *models.PublicUser `json:"reporter,omitempty"`
+	ReportedUser *models.PublicUser `json:"reported_user,omitempty"`
+}
+
+// ReportTypeMeta is one entry in the /reports/meta response.
+type ReportTypeMeta struct {
+	Value models.ReportType `json:"value"`
+	Label models.I18nText   `json:"label"`
+}
+
+type ReportMeta struct {
+	Types          []ReportTypeMeta `json:"types"`
+	TextInputLimit int              `json:"text_input_limit"`
+}
