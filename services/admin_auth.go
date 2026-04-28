@@ -7,16 +7,20 @@ import (
 	"github.com/itpu-student/s101_api/db"
 	"github.com/itpu-student/s101_api/models"
 	"github.com/itpu-student/s101_api/utils"
+	. "github.com/itpu-student/s101_api/utils/api_err"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
-	. "github.com/itpu-student/s101_api/utils/api_err"
 )
 
 // AdminLogin verifies admin credentials and issues a JWT. Returns a generic
 // "unauthorized: invalid credentials" for both "unknown username" and "wrong
 // password" to avoid leaking which of the two was incorrect.
 func AdminLogin(ctx context.Context, in AdminLoginInput) (*AdminLoginOutput, error) {
+
+	if in.Username == "" || in.Password == "" {
 		return nil, NewApiErr(AetBadInput, "username and password are required")
+	}
+
 	var a models.Admin
 	err := db.Admins().FindOne(ctx, bson.M{"username": in.Username}).Decode(&a)
 	if err != nil {
