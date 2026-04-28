@@ -36,18 +36,18 @@ var defaultCategories = []seedCategory{
 		Desc:  models.I18nText{EN: "Choyxona, restaurants, cafes, fast food", UZ: "Choyxona, restoranlar, kafelar, tez ovqat"},
 	},
 	{
+		ID:    "00000000-0000-0000-0000-500000000000",
+		Slug:  "sports",
+		Emoji: "⚽",
+		Name:  models.I18nText{EN: "Sports", UZ: "Sport"},
+		Desc:  models.I18nText{EN: "Gyms, stadiums, swimming pools, golf clubs", UZ: "Zallar, stadionlar, suzish havzalari, golf klublari"},
+	},
+	{
 		ID:    "00000000-0000-0000-0000-200000000000",
 		Slug:  "auto",
 		Emoji: "🚗",
 		Name:  models.I18nText{EN: "Auto Services", UZ: "Avto Xizmatlar"},
 		Desc:  models.I18nText{EN: "Car repair, car wash, petrol stations, car rental", UZ: "Avto ta'mir, yuvish, yoqilg'i shahobchalari, ijara"},
-	},
-	{
-		ID:    "00000000-0000-0000-0000-300000000000",
-		Slug:  "health",
-		Emoji: "🏥",
-		Name:  models.I18nText{EN: "Health", UZ: "Salomatlik"},
-		Desc:  models.I18nText{EN: "Clinics, hospitals, pharmacies, dental", UZ: "Klinikalar, shifoxonalar, dorixonalar, stomatologiya"},
 	},
 	{
 		ID:    "00000000-0000-0000-0000-400000000000",
@@ -57,18 +57,18 @@ var defaultCategories = []seedCategory{
 		Desc:  models.I18nText{EN: "Adventure parks, aqua parks, cinemas, amusement", UZ: "Sarguzasht parklari, aqua parklari, kinoteatrlar"},
 	},
 	{
-		ID:    "00000000-0000-0000-0000-500000000000",
-		Slug:  "sports",
-		Emoji: "⚽",
-		Name:  models.I18nText{EN: "Sports", UZ: "Sport"},
-		Desc:  models.I18nText{EN: "Gyms, stadiums, swimming pools, golf clubs", UZ: "Zallar, stadionlar, suzish havzalari, golf klublari"},
-	},
-	{
 		ID:    "00000000-0000-0000-0000-600000000000",
 		Slug:  "tabiat",
 		Emoji: "🏔️",
 		Name:  models.I18nText{EN: "Nature (Tabiat)", UZ: "Tabiat"},
 		Desc:  models.I18nText{EN: "National parks, botanical gardens, hiking trails", UZ: "Milliy bog'lar, botanika bog'lari, sayr yo'llari"},
+	},
+	{
+		ID:    "00000000-0000-0000-0000-300000000000",
+		Slug:  "health",
+		Emoji: "🏥",
+		Name:  models.I18nText{EN: "Health", UZ: "Salomatlik"},
+		Desc:  models.I18nText{EN: "Clinics, hospitals, pharmacies, dental", UZ: "Klinikalar, shifoxonalar, dorixonalar, stomatologiya"},
 	},
 }
 
