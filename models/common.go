@@ -22,6 +22,17 @@ const (
 	StatusApproved Status = 10
 )
 
+func (s Status) IsValid() bool {
+	switch s {
+	case StatusPending:
+	case StatusApproved:
+	case StatusRejected:
+	default:
+		return false
+	}
+	return true
+}
+
 func (s Status) String() string {
 	switch s {
 	case StatusPending:

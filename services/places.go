@@ -212,7 +212,7 @@ func EditPlace(ctx context.Context, claimantID string, id string, in EditPlaceIn
 }
 
 func SetPlaceStatus(ctx context.Context, id string, status models.Status) error {
-	if status != models.StatusPending && status != models.StatusApproved && status != models.StatusRejected {
+	if !status.IsValid() {
 		return NewApiErr(AetBadInput, "invalid status: %s", status)
 	}
 	res, err := db.Places().UpdateByID(ctx, id, bson.M{"$set": bson.M{
