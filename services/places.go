@@ -17,7 +17,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-func ListPlacesAdmin(ctx context.Context, f PlaceFilter, paging utils.Paging) (*Page[models.Place], error) {
+func ListPlacesAdmin(ctx context.Context, f PlaceFilter, paging utils.Paging) (*Page[PlaceView], error) {
 	filter := bson.M{}
 	if f.Status != nil {
 		filter["status"] = *f.Status
@@ -28,13 +28,24 @@ func ListPlacesAdmin(ctx context.Context, f PlaceFilter, paging utils.Paging) (*
 	if err != nil {
 		return nil, err
 	}
-	var items []models.Place
-	err = cur.All(ctx, &items)
+	var raw []models.Place
+	err = cur.All(ctx, &raw)
 	if err != nil {
 		return nil, err
 	}
 	total, _ := db.Places().CountDocuments(ctx, filter)
+	items := make([]PlaceView, 0, len(raw))
+	for _, p := range raw {
+		items = append(items, *buildAdminPlaceView(ctx, p))
+	}
 	return NewPage(items, paging, total), nil
+}
+
+func buildAdminPlaceView(ctx context.Context, p models.Place) *PlaceView {
+	v := NewPlaceView(p)
+	v.CreatedByUser = lookupUserMini(ctx, p.CreatedBy)
+	v.ClaimedByUser = lookupUserMini(ctx, p.ClaimedBy)
+	return v
 }
 
 func ListPlaces(ctx context.Context, f PlaceFilter, paging utils.Paging) (*Page[PlaceView], error) {

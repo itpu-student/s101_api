@@ -323,15 +323,16 @@ func loadTargetOwner(ctx context.Context, tt models.ReportTargetType, id string)
 }
 
 // buildReportView wraps a Report with a target preview card. When includeUsers
-// is true, also embeds the reporter and the reported user (admin views).
+// is true, also embeds reporter, reported_user, and reviewing admin (admin views).
 // Missing related rows (e.g. target deleted post-action) leave nested fields
 // nil rather than failing.
 func buildReportView(ctx context.Context, r *models.Report, includeUsers bool) *ReportView {
 	v := &ReportView{Report: *r}
 	v.Target = loadReportTarget(ctx, r.TargetType, r.TargetID)
 	if includeUsers {
-		v.Reporter = lookupPublicUser(ctx, &r.UserID)
-		v.ReportedUser = lookupPublicUser(ctx, r.ReportedUserID)
+		v.ReporterUser = lookupUserMini(ctx, &r.UserID)
+		v.ReportedUser = lookupUserMini(ctx, r.ReportedUserID)
+		v.Admin = lookupAdminMini(ctx, r.AdminID)
 	}
 	return v
 }
@@ -410,6 +411,28 @@ func lookupPublicUser(ctx context.Context, id *string) *models.PublicUser {
 		return nil
 	}
 	return u.Public()
+}
+
+func lookupUserMini(ctx context.Context, id *string) *models.UserMini {
+	if id == nil || *id == "" {
+		return nil
+	}
+	var u models.User
+	if err := db.Users().FindOne(ctx, bson.M{"_id": *id}).Decode(&u); err != nil {
+		return nil
+	}
+	return u.Mini()
+}
+
+func lookupAdminMini(ctx context.Context, id *string) *models.AdminMini {
+	if id == nil || *id == "" {
+		return nil
+	}
+	var a models.Admin
+	if err := db.Admins().FindOne(ctx, bson.M{"_id": *id}).Decode(&a); err != nil {
+		return nil
+	}
+	return a.Mini()
 }
 
 // notifyReporter best-effort sends an Uz Telegram DM to the reporter when an

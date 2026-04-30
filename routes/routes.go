@@ -78,6 +78,7 @@ func Register(r *gin.Engine) {
 	admin.DELETE("/reviews/:id", rw, handlers.AdminDeleteReview)
 
 	admin.GET("/users", handlers.AdminListUsers)
+	admin.GET("/users/:id", handlers.AdminGetUser)
 	admin.PUT("/users/:id/block", rw, handlers.AdminBlockUser)
 
 	admin.GET("/claims", handlers.AdminListClaims)

@@ -44,6 +44,18 @@ type AdminUserView struct {
 	CreatedAt  time.Time `json:"created_at"`
 }
 
+// AdminUserDetailView extends AdminUserView with activity counts for the
+// GET /api/admin/users/:id endpoint.
+type AdminUserDetailView struct {
+	AdminUserView
+	ReviewCount       int64     `json:"review_count"`
+	PlaceCount        int64     `json:"place_count"`
+	ClaimedPlaceCount int64     `json:"claimed_place_count"`
+	ClaimCount        int64     `json:"claim_count"`
+	ReportCount       int64     `json:"report_count"`
+	UpdatedAt         time.Time `json:"updated_at"`
+}
+
 type AdminLoginOutput struct {
 	Token string       `json:"token"`
 	Admin models.Admin `json:"admin"`
@@ -77,10 +89,6 @@ type BookmarkView struct {
 	Place *PlaceView `json:"place,omitempty"`
 }
 
-// BookmarksView groups a user's bookmarks with the referenced places nested
-// inside each bookmark object.
-
-
 func NewAdminUserView(u models.User) *AdminUserView {
 	return &AdminUserView{
 		ID:         u.ID,
@@ -96,11 +104,25 @@ func NewAdminUserView(u models.User) *AdminUserView {
 
 type PlaceView struct {
 	models.Place
-	IsOpen bool `json:"is_open"`
+	IsOpen        bool             `json:"is_open"`
+	CreatedByUser *models.UserMini `json:"created_by_user,omitempty"`
+	ClaimedByUser *models.UserMini `json:"claimed_by_user,omitempty"`
 }
 
 func NewPlaceView(p models.Place) *PlaceView {
 	return &PlaceView{Place: p, IsOpen: utils.IsOpen(p.WeeklyHours, time.Now())}
+}
+
+// ReviewView wraps a Review with the author's UserMini for list endpoints.
+type ReviewView struct {
+	models.Review
+	User *models.UserMini `json:"user,omitempty"`
+}
+
+// ClaimView wraps a ClaimRequest with the claimant's UserMini for admin endpoints.
+type ClaimView struct {
+	models.ClaimRequest
+	User *models.UserMini `json:"user,omitempty"`
 }
 
 // ReportTarget is a uniform preview card for whatever a report points at — a
@@ -114,12 +136,13 @@ type ReportTarget struct {
 }
 
 // ReportView is the API shape for a Report — embeds the report and adds the
-// target card plus reporter/reported_user details when the caller is admin.
+// target card plus reporter/reported_user/admin details when the caller is admin.
 type ReportView struct {
 	models.Report
-	Target       *ReportTarget      `json:"target,omitempty"`
-	Reporter     *models.PublicUser `json:"reporter,omitempty"`
-	ReportedUser *models.PublicUser `json:"reported_user,omitempty"`
+	Target       *ReportTarget     `json:"target,omitempty"`
+	ReporterUser *models.UserMini  `json:"reporter_user,omitempty"`
+	ReportedUser *models.UserMini  `json:"reported_user,omitempty"`
+	Admin        *models.AdminMini `json:"admin,omitempty"`
 }
 
 // ReportTypeMeta is one entry in the /reports/meta response.
