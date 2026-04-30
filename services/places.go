@@ -45,6 +45,10 @@ func buildAdminPlaceView(ctx context.Context, p models.Place) *PlaceView {
 	v := NewPlaceView(p)
 	v.CreatedByUser = lookupUserMini(ctx, p.CreatedBy)
 	v.ClaimedByUser = lookupUserMini(ctx, p.ClaimedBy)
+	var cat models.Category
+	if err := db.Categories().FindOne(ctx, bson.M{"_id": p.CategoryID}).Decode(&cat); err == nil {
+		v.CategoryName = &cat.Name
+	}
 	return v
 }
 

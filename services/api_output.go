@@ -105,6 +105,7 @@ func NewAdminUserView(u models.User) *AdminUserView {
 type PlaceView struct {
 	models.Place
 	IsOpen        bool             `json:"is_open"`
+	CategoryName  *models.I18nText `json:"category_name,omitempty"`
 	CreatedByUser *models.UserMini `json:"created_by_user,omitempty"`
 	ClaimedByUser *models.UserMini `json:"claimed_by_user,omitempty"`
 }
