@@ -13,7 +13,7 @@ import (
 // @Produce      json
 // @Param        page  query int false "Page number"
 // @Param        limit query int false "Page size"
-// @Success      200 {object} object
+// @Success      200 {object} services.Page[models.Admin]
 // @Router       /admin/admins [get]
 func AdminListAdmins(c *gin.Context) {
 	paging := utils.ParsePaging(c)

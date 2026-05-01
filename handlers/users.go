@@ -65,7 +65,7 @@ func DeleteMe(c *gin.Context) {
 // @Param        id    path  string true  "User ID"
 // @Param        page  query int    false "Page number"
 // @Param        limit query int    false "Page size"
-// @Success      200 {object} object
+// @Success      200 {object} services.Page[services.ReviewView]
 // @Failure      404 {object} api_err.ApiErr
 // @Router       /users/{id}/reviews [get]
 func UserReviews(c *gin.Context) {

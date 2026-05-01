@@ -36,7 +36,7 @@ func SubmitClaim(c *gin.Context) {
 // @Produce      json
 // @Param        page  query int false "Page number"
 // @Param        limit query int false "Page size"
-// @Success      200 {object} object
+// @Success      200 {object} services.Page[models.ClaimRequest]
 // @Failure      401 {object} api_err.ApiErr
 // @Router       /claims/mine [get]
 func MyClaims(c *gin.Context) {

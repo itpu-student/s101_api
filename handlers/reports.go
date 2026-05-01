@@ -117,7 +117,7 @@ func AdminGetReport(c *gin.Context) {
 // @Param        status query string false "Filter by status"
 // @Param        page   query int    false "Page number"
 // @Param        limit  query int    false "Page size"
-// @Success      200 {object} object
+// @Success      200 {object} services.Page[services.ReportView]
 // @Failure      401 {object} api_err.ApiErr
 // @Router       /reports/mine [get]
 func MyReports(c *gin.Context) {
@@ -142,7 +142,7 @@ func MyReports(c *gin.Context) {
 // @Param        admin_id         query string false "Filter by admin"
 // @Param        page             query int    false "Page number"
 // @Param        limit            query int    false "Page size"
-// @Success      200 {object} object
+// @Success      200 {object} services.Page[services.ReportView]
 // @Router       /admin/reports [get]
 func AdminListReports(c *gin.Context) {
 	f := services.ReportFilter{

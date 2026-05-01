@@ -30,7 +30,7 @@ func requireUUIDParam(c *gin.Context, name string) (string, bool) {
 // @Param        status query string false "pending|approved|rejected"
 // @Param        page   query int    false "Page number"
 // @Param        limit  query int    false "Page size"
-// @Success      200 {object} object
+// @Success      200 {object} services.Page[services.PlaceView]
 // @Router       /admin/places [get]
 func AdminListPlaces(c *gin.Context) {
 	paging := utils.ParsePaging(c)
@@ -120,7 +120,7 @@ func AdminDeletePlace(c *gin.Context) {
 // @Param        place_id query string false "Filter by place ID"
 // @Param        page     query int    false "Page number"
 // @Param        limit    query int    false "Page size"
-// @Success      200 {object} object
+// @Success      200 {object} services.Page[services.ReviewView]
 // @Router       /admin/reviews [get]
 func AdminListReviews(c *gin.Context) {
 	var pid *string
@@ -157,7 +157,7 @@ func AdminDeleteReview(c *gin.Context) {
 // @Produce      json
 // @Param        page  query int false "Page number"
 // @Param        limit query int false "Page size"
-// @Success      200 {object} object
+// @Success      200 {object} services.Page[services.AdminUserView]
 // @Router       /admin/users [get]
 func AdminListUsers(c *gin.Context) {
 	page, err := services.ListUsersAdmin(c.Request.Context(), utils.ParsePaging(c))
@@ -213,7 +213,7 @@ func AdminBlockUser(c *gin.Context) {
 // @Param        status query string false "pending|approved|rejected"
 // @Param        page   query int    false "Page number"
 // @Param        limit  query int    false "Page size"
-// @Success      200 {object} object
+// @Success      200 {object} services.Page[services.ClaimView]
 // @Router       /admin/claims [get]
 func AdminListClaims(c *gin.Context) {
 	page, err := services.ListClaimsAdmin(c.Request.Context(), services.ClaimFilter{

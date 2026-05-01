@@ -13,7 +13,7 @@ import (
 // @Produce      json
 // @Param        page  query int false "Page number"
 // @Param        limit query int false "Page size"
-// @Success      200 {object} object
+// @Success      200 {object} services.Page[services.BookmarkView]
 // @Failure      401 {object} api_err.ApiErr
 // @Router       /bookmarks [get]
 func ListBookmarks(c *gin.Context) {
@@ -32,7 +32,6 @@ func ListBookmarks(c *gin.Context) {
 // @Security     BearerAuth
 // @Param        placeId path string true "Place ID"
 // @Success      201 {object} services.BookmarkView
-// @Success      208
 // @Failure      401 {object} api_err.ApiErr
 // @Router       /bookmarks/{placeId} [post]
 func AddBookmark(c *gin.Context) {

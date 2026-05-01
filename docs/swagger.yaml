@@ -77,9 +77,32 @@ definitions:
         type: string
       name:
         $ref: '#/definitions/models.I18nText'
+      order:
+        type: number
       slug:
         type: string
       updated_at:
+        type: string
+    type: object
+  models.ClaimRequest:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: string
+      note:
+        type: string
+      phone:
+        type: string
+      place_id:
+        type: string
+      reviewed_by:
+        type: string
+      status:
+        $ref: '#/definitions/models.Status'
+      updated_at:
+        type: string
+      user_id:
         type: string
     type: object
   models.GeoPoint:
@@ -274,6 +297,25 @@ definitions:
       username:
         type: string
     type: object
+  services.AdminUserView:
+    properties:
+      avatar_key:
+        type: string
+      blocked:
+        type: boolean
+      created_at:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      phone:
+        type: string
+      telegram_id:
+        type: string
+      username:
+        type: string
+    type: object
   services.BlockUserInput:
     properties:
       blocked:
@@ -383,6 +425,8 @@ definitions:
         type: string
       name:
         $ref: '#/definitions/models.I18nText'
+      order:
+        type: number
     type: object
   services.EditPlaceInput:
     properties:
@@ -433,6 +477,110 @@ definitions:
         type: boolean
       status:
         $ref: '#/definitions/models.Status'
+    type: object
+  services.Page-models_Admin:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/models.Admin'
+        type: array
+      limit:
+        type: integer
+      page:
+        type: integer
+      total:
+        type: integer
+    type: object
+  services.Page-models_ClaimRequest:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/models.ClaimRequest'
+        type: array
+      limit:
+        type: integer
+      page:
+        type: integer
+      total:
+        type: integer
+    type: object
+  services.Page-services_AdminUserView:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/services.AdminUserView'
+        type: array
+      limit:
+        type: integer
+      page:
+        type: integer
+      total:
+        type: integer
+    type: object
+  services.Page-services_BookmarkView:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/services.BookmarkView'
+        type: array
+      limit:
+        type: integer
+      page:
+        type: integer
+      total:
+        type: integer
+    type: object
+  services.Page-services_ClaimView:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/services.ClaimView'
+        type: array
+      limit:
+        type: integer
+      page:
+        type: integer
+      total:
+        type: integer
+    type: object
+  services.Page-services_PlaceView:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/services.PlaceView'
+        type: array
+      limit:
+        type: integer
+      page:
+        type: integer
+      total:
+        type: integer
+    type: object
+  services.Page-services_ReportView:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/services.ReportView'
+        type: array
+      limit:
+        type: integer
+      page:
+        type: integer
+      total:
+        type: integer
+    type: object
+  services.Page-services_ReviewView:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/services.ReviewView'
+        type: array
+      limit:
+        type: integer
+      page:
+        type: integer
+      total:
+        type: integer
     type: object
   services.PlaceView:
     properties:
@@ -675,7 +823,7 @@ paths:
         "200":
           description: OK
           schema:
-            type: object
+            $ref: '#/definitions/services.Page-models_Admin'
       security:
       - BearerAuth: []
       summary: 'Admin: list admins'
@@ -874,7 +1022,7 @@ paths:
         "200":
           description: OK
           schema:
-            type: object
+            $ref: '#/definitions/services.Page-services_ClaimView'
       security:
       - BearerAuth: []
       summary: 'Admin: list claims'
@@ -933,7 +1081,7 @@ paths:
         "200":
           description: OK
           schema:
-            type: object
+            $ref: '#/definitions/services.Page-services_PlaceView'
       security:
       - BearerAuth: []
       summary: 'Admin: list places'
@@ -1063,7 +1211,7 @@ paths:
         "200":
           description: OK
           schema:
-            type: object
+            $ref: '#/definitions/services.Page-services_ReportView'
       security:
       - BearerAuth: []
       summary: 'Admin: list reports'
@@ -1145,7 +1293,7 @@ paths:
         "200":
           description: OK
           schema:
-            type: object
+            $ref: '#/definitions/services.Page-services_ReviewView'
       security:
       - BearerAuth: []
       summary: 'Admin: list reviews'
@@ -1188,7 +1336,7 @@ paths:
         "200":
           description: OK
           schema:
-            type: object
+            $ref: '#/definitions/services.Page-services_AdminUserView'
       security:
       - BearerAuth: []
       summary: 'Admin: list users'
@@ -1310,7 +1458,7 @@ paths:
         "200":
           description: OK
           schema:
-            type: object
+            $ref: '#/definitions/services.Page-services_BookmarkView'
         "401":
           description: Unauthorized
           schema:
@@ -1352,8 +1500,6 @@ paths:
           description: Created
           schema:
             $ref: '#/definitions/services.BookmarkView'
-        "208":
-          description: Already Reported
         "401":
           description: Unauthorized
           schema:
@@ -1421,7 +1567,7 @@ paths:
         "200":
           description: OK
           schema:
-            type: object
+            $ref: '#/definitions/services.Page-models_ClaimRequest'
         "401":
           description: Unauthorized
           schema:
@@ -1503,7 +1649,7 @@ paths:
         "200":
           description: OK
           schema:
-            type: object
+            $ref: '#/definitions/services.Page-services_PlaceView'
       summary: List places
       tags:
       - places
@@ -1585,7 +1731,7 @@ paths:
         "200":
           description: OK
           schema:
-            type: object
+            $ref: '#/definitions/services.Page-services_ReviewView'
         "400":
           description: Bad Request
           schema:
@@ -1785,7 +1931,7 @@ paths:
         "200":
           description: OK
           schema:
-            type: object
+            $ref: '#/definitions/services.Page-services_ReportView'
         "401":
           description: Unauthorized
           schema:
@@ -1859,7 +2005,7 @@ paths:
         "200":
           description: OK
           schema:
-            type: object
+            $ref: '#/definitions/services.Page-services_ReviewView'
         "404":
           description: Not Found
           schema:

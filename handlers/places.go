@@ -21,7 +21,7 @@ import (
 // @Param        near        query string false "lat,lon for nearest sort"
 // @Param        page        query int    false "Page number"
 // @Param        limit       query int    false "Page size"
-// @Success      200 {object} object
+// @Success      200 {object} services.Page[services.PlaceView]
 // @Router       /places [get]
 func ListPlaces(c *gin.Context) {
 	paging := utils.ParsePaging(c)
