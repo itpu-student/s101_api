@@ -1,0 +1,1916 @@
+basePath: /api
+definitions:
+  api_err.ApiErr:
+    properties:
+      msg:
+        type: string
+      typ:
+        $ref: '#/definitions/api_err.ApiErrTyp'
+    type: object
+  api_err.ApiErrTyp:
+    enum:
+    - not_found
+    - bad_input
+    - forbidden
+    - unauthorized
+    - already_claimed
+    - pending_claim_exists
+    - username_invalid
+    - username_taken
+    - report_target_missing
+    - report_locked
+    - duplicate_open_report
+    - text_too_long
+    - unknown
+    type: string
+    x-enum-varnames:
+    - AetNotFound
+    - AetBadInput
+    - AetForbidden
+    - AetUnauthorized
+    - AetAlreadyClaimed
+    - AetPendingClaimExists
+    - AetUsernameInvalid
+    - AetUsernameTaken
+    - AetReportTargetMissing
+    - AetReportLocked
+    - AetDuplicateOpenReport
+    - AetTextTooLong
+    - AetUnknown
+  models.Admin:
+    properties:
+      avatar_key:
+        type: string
+      created_at:
+        type: string
+      created_by:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      power:
+        type: number
+      username:
+        type: string
+    type: object
+  models.AdminMini:
+    properties:
+      avatar_key:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      username:
+        type: string
+    type: object
+  models.Category:
+    properties:
+      created_at:
+        type: string
+      desc:
+        $ref: '#/definitions/models.I18nText'
+      emoji:
+        type: string
+      id:
+        type: string
+      name:
+        $ref: '#/definitions/models.I18nText'
+      slug:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  models.GeoPoint:
+    properties:
+      coordinates:
+        items:
+          type: number
+        type: array
+      type:
+        type: string
+    type: object
+  models.HourRange:
+    properties:
+      close:
+        description: '"22:00"'
+        type: string
+      open:
+        description: '"09:00"'
+        type: string
+    type: object
+  models.I18nText:
+    properties:
+      en:
+        type: string
+      uz:
+        type: string
+    type: object
+  models.PublicUser:
+    properties:
+      avatar_key:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      username:
+        type: string
+    type: object
+  models.ReportStatus:
+    enum:
+    - pending
+    - in_progress
+    - dismissed
+    - actioned
+    type: string
+    x-enum-varnames:
+    - ReportStatusPending
+    - ReportStatusInProgress
+    - ReportStatusDismissed
+    - ReportStatusActioned
+  models.ReportTargetType:
+    enum:
+    - review
+    - place
+    type: string
+    x-enum-varnames:
+    - ReportTargetReview
+    - ReportTargetPlace
+  models.ReportType:
+    enum:
+    - spam
+    - misleading
+    - inappropriate
+    - profanity
+    type: string
+    x-enum-varnames:
+    - ReportTypeSpam
+    - ReportTypeMisleading
+    - ReportTypeInappropriate
+    - ReportTypeProfanity
+  models.Status:
+    enum:
+    - -10
+    - 0
+    - 10
+    type: integer
+    x-enum-varnames:
+    - StatusRejected
+    - StatusPending
+    - StatusApproved
+  models.UserMini:
+    properties:
+      avatar_key:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      username:
+        type: string
+    type: object
+  models.WeeklyHours:
+    properties:
+      fri:
+        items:
+          $ref: '#/definitions/models.HourRange'
+        type: array
+      mon:
+        items:
+          $ref: '#/definitions/models.HourRange'
+        type: array
+      sat:
+        items:
+          $ref: '#/definitions/models.HourRange'
+        type: array
+      sun:
+        items:
+          $ref: '#/definitions/models.HourRange'
+        type: array
+      thu:
+        items:
+          $ref: '#/definitions/models.HourRange'
+        type: array
+      tue:
+        items:
+          $ref: '#/definitions/models.HourRange'
+        type: array
+      wed:
+        items:
+          $ref: '#/definitions/models.HourRange'
+        type: array
+    type: object
+  services.AdminEditPlaceInput:
+    properties:
+      address:
+        $ref: '#/definitions/models.I18nText'
+      category_id:
+        type: string
+      description:
+        $ref: '#/definitions/models.I18nText'
+      images:
+        items:
+          type: string
+        type: array
+      lat:
+        type: number
+      logo_key:
+        type: string
+      lon:
+        type: number
+      name:
+        type: string
+      phone:
+        type: string
+      weekly_hours:
+        $ref: '#/definitions/models.WeeklyHours'
+    type: object
+  services.AdminLoginInput:
+    properties:
+      password:
+        type: string
+      username:
+        type: string
+    type: object
+  services.AdminLoginOutput:
+    properties:
+      admin:
+        $ref: '#/definitions/models.Admin'
+      token:
+        type: string
+    type: object
+  services.AdminUserDetailView:
+    properties:
+      avatar_key:
+        type: string
+      blocked:
+        type: boolean
+      claim_count:
+        type: integer
+      claimed_place_count:
+        type: integer
+      created_at:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      phone:
+        type: string
+      place_count:
+        type: integer
+      report_count:
+        type: integer
+      review_count:
+        type: integer
+      telegram_id:
+        type: string
+      updated_at:
+        type: string
+      username:
+        type: string
+    type: object
+  services.BlockUserInput:
+    properties:
+      blocked:
+        type: boolean
+    type: object
+  services.BookmarkView:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: string
+      place:
+        $ref: '#/definitions/services.PlaceView'
+      place_id:
+        type: string
+      user_id:
+        type: string
+    type: object
+  services.ClaimView:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: string
+      note:
+        type: string
+      phone:
+        type: string
+      place_id:
+        type: string
+      reviewed_by:
+        type: string
+      status:
+        $ref: '#/definitions/models.Status'
+      updated_at:
+        type: string
+      user:
+        $ref: '#/definitions/models.UserMini'
+      user_id:
+        type: string
+    type: object
+  services.CreateAdminInput:
+    properties:
+      name:
+        type: string
+      password:
+        type: string
+      power:
+        type: number
+      username:
+        type: string
+    type: object
+  services.CreatePlaceInput:
+    properties:
+      address:
+        $ref: '#/definitions/models.I18nText'
+      category_id:
+        type: string
+      description:
+        $ref: '#/definitions/models.I18nText'
+      images:
+        items:
+          type: string
+        type: array
+      lat:
+        type: number
+      logo_key:
+        type: string
+      lon:
+        type: number
+      name:
+        type: string
+      phone:
+        type: string
+      weekly_hours:
+        $ref: '#/definitions/models.WeeklyHours'
+    type: object
+  services.CreateReviewInput:
+    properties:
+      images:
+        items:
+          type: string
+        type: array
+      price_rating:
+        type: integer
+      quality_rating:
+        type: integer
+      star_rating:
+        type: integer
+      text:
+        type: string
+    type: object
+  services.EditAdminInput:
+    properties:
+      name:
+        type: string
+      password:
+        type: string
+      power:
+        type: number
+    type: object
+  services.EditCategoryInput:
+    properties:
+      desc:
+        $ref: '#/definitions/models.I18nText'
+      emoji:
+        type: string
+      name:
+        $ref: '#/definitions/models.I18nText'
+    type: object
+  services.EditPlaceInput:
+    properties:
+      description:
+        $ref: '#/definitions/models.I18nText'
+      images:
+        items:
+          type: string
+        type: array
+      logo_key:
+        type: string
+      phone:
+        type: string
+      weekly_hours:
+        $ref: '#/definitions/models.WeeklyHours'
+    type: object
+  services.EditReportInput:
+    properties:
+      text:
+        type: string
+      type:
+        $ref: '#/definitions/models.ReportType'
+    type: object
+  services.MeView:
+    properties:
+      avatar_key:
+        type: string
+      blocked:
+        type: boolean
+      created_at:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      owns_place:
+        type: boolean
+      phone:
+        type: string
+      username:
+        type: string
+    type: object
+  services.Ok:
+    properties:
+      blocked:
+        type: boolean
+      ok:
+        type: boolean
+      status:
+        $ref: '#/definitions/models.Status'
+    type: object
+  services.PlaceView:
+    properties:
+      address:
+        $ref: '#/definitions/models.I18nText'
+      atc_id:
+        type: string
+      avg_rating:
+        type: number
+      category_id:
+        type: string
+      category_name:
+        $ref: '#/definitions/models.I18nText'
+      claimed_by:
+        type: string
+      claimed_by_user:
+        $ref: '#/definitions/models.UserMini'
+      created_at:
+        type: string
+      created_by:
+        type: string
+      created_by_user:
+        $ref: '#/definitions/models.UserMini'
+      description:
+        $ref: '#/definitions/models.I18nText'
+      id:
+        type: string
+      images:
+        items:
+          type: string
+        type: array
+      is_open:
+        type: boolean
+      lat:
+        type: number
+      location:
+        $ref: '#/definitions/models.GeoPoint'
+      logo_key:
+        type: string
+      lon:
+        type: number
+      name:
+        type: string
+      phone:
+        type: string
+      review_count:
+        type: integer
+      slug:
+        type: string
+      status:
+        $ref: '#/definitions/models.Status'
+      updated_at:
+        type: string
+      weekly_hours:
+        $ref: '#/definitions/models.WeeklyHours'
+    type: object
+  services.PublicUserView:
+    properties:
+      review_count:
+        type: integer
+      user:
+        $ref: '#/definitions/models.PublicUser'
+    type: object
+  services.ReportMeta:
+    properties:
+      text_input_limit:
+        type: integer
+      types:
+        items:
+          $ref: '#/definitions/services.ReportTypeMeta'
+        type: array
+    type: object
+  services.ReportTarget:
+    properties:
+      avatar_key:
+        type: string
+      content:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      type:
+        $ref: '#/definitions/models.ReportTargetType'
+    type: object
+  services.ReportTypeMeta:
+    properties:
+      label:
+        $ref: '#/definitions/models.I18nText'
+      value:
+        $ref: '#/definitions/models.ReportType'
+    type: object
+  services.ReportView:
+    properties:
+      admin:
+        $ref: '#/definitions/models.AdminMini'
+      admin_id:
+        type: string
+      admin_response:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: string
+      reported_user:
+        $ref: '#/definitions/models.UserMini'
+      reported_user_id:
+        type: string
+      reporter_user:
+        $ref: '#/definitions/models.UserMini'
+      reviewed_at:
+        type: string
+      status:
+        $ref: '#/definitions/models.ReportStatus'
+      target:
+        $ref: '#/definitions/services.ReportTarget'
+      target_id:
+        type: string
+      target_type:
+        $ref: '#/definitions/models.ReportTargetType'
+      text:
+        type: string
+      type:
+        $ref: '#/definitions/models.ReportType'
+      updated_at:
+        type: string
+      user_id:
+        type: string
+    type: object
+  services.ReviewClaimInput:
+    properties:
+      status:
+        $ref: '#/definitions/models.Status'
+    type: object
+  services.ReviewReportInput:
+    properties:
+      admin_response:
+        type: string
+      block_reported_user:
+        type: boolean
+      delete_target_review:
+        type: boolean
+      status:
+        $ref: '#/definitions/models.ReportStatus'
+    type: object
+  services.ReviewView:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: string
+      images:
+        items:
+          type: string
+        type: array
+      latest:
+        type: boolean
+      place_id:
+        type: string
+      price_rating:
+        type: integer
+      quality_rating:
+        type: integer
+      star_rating:
+        type: integer
+      text:
+        type: string
+      user:
+        $ref: '#/definitions/models.UserMini'
+      user_id:
+        type: string
+    type: object
+  services.SetPlaceStatusInput:
+    properties:
+      status:
+        $ref: '#/definitions/models.Status'
+    type: object
+  services.SubmitClaimInput:
+    properties:
+      note:
+        type: string
+      phone:
+        type: string
+      place_id:
+        type: string
+    type: object
+  services.SubmitReportInput:
+    properties:
+      target_id:
+        type: string
+      target_type:
+        $ref: '#/definitions/models.ReportTargetType'
+      text:
+        type: string
+      type:
+        $ref: '#/definitions/models.ReportType'
+    type: object
+  services.UpdateMeInput:
+    properties:
+      avatar_key:
+        type: string
+      name:
+        type: string
+      username:
+        type: string
+    type: object
+  services.VerifyCodeInput:
+    properties:
+      code:
+        type: string
+    type: object
+  services.VerifyCodeOutput:
+    properties:
+      token:
+        type: string
+      user:
+        $ref: '#/definitions/models.PublicUser'
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: S101 backend API
+  title: S101 API
+  version: "1.0"
+paths:
+  /admin/admins:
+    get:
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 'Admin: list admins'
+      tags:
+      - admin-admins
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Admin data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/services.CreateAdminInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.Admin'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api_err.ApiErr'
+      security:
+      - BearerAuth: []
+      summary: 'Admin: create admin'
+      tags:
+      - admin-admins
+  /admin/admins/{id}:
+    get:
+      parameters:
+      - description: Admin UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Admin'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api_err.ApiErr'
+      security:
+      - BearerAuth: []
+      summary: 'Admin: get admin by ID'
+      tags:
+      - admin-admins
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Admin UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Fields to update
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/services.EditAdminInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Admin'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api_err.ApiErr'
+      security:
+      - BearerAuth: []
+      summary: 'Admin: edit admin'
+      tags:
+      - admin-admins
+  /admin/auth/login:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Credentials
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/services.AdminLoginInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/services.AdminLoginOutput'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api_err.ApiErr'
+      summary: Admin login
+      tags:
+      - admin-auth
+  /admin/auth/me:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Admin'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api_err.ApiErr'
+      security:
+      - BearerAuth: []
+      summary: Get current admin
+      tags:
+      - admin-auth
+  /admin/categories:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Category'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: 'Admin: list categories'
+      tags:
+      - admin-categories
+  /admin/categories/{id}:
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Category UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Fields to update
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/services.EditCategoryInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/services.Ok'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api_err.ApiErr'
+      security:
+      - BearerAuth: []
+      summary: 'Admin: edit category'
+      tags:
+      - admin-categories
+  /admin/claims:
+    get:
+      parameters:
+      - description: pending|approved|rejected
+        in: query
+        name: status
+        type: string
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 'Admin: list claims'
+      tags:
+      - admin-claims
+  /admin/claims/{id}:
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Claim ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Decision
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/services.ReviewClaimInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/services.Ok'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api_err.ApiErr'
+      security:
+      - BearerAuth: []
+      summary: 'Admin: approve or reject a claim'
+      tags:
+      - admin-claims
+  /admin/places:
+    get:
+      parameters:
+      - description: pending|approved|rejected
+        in: query
+        name: status
+        type: string
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 'Admin: list places'
+      tags:
+      - admin-places
+  /admin/places/{id}:
+    delete:
+      parameters:
+      - description: Place UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api_err.ApiErr'
+      security:
+      - BearerAuth: []
+      summary: 'Admin: delete place'
+      tags:
+      - admin-places
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Place UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Fields to update
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/services.AdminEditPlaceInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/services.Ok'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api_err.ApiErr'
+      security:
+      - BearerAuth: []
+      summary: 'Admin: edit place'
+      tags:
+      - admin-places
+  /admin/places/{id}/status:
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Place UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: New status
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/services.SetPlaceStatusInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/services.Ok'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api_err.ApiErr'
+      security:
+      - BearerAuth: []
+      summary: 'Admin: set place status'
+      tags:
+      - admin-places
+  /admin/reports:
+    get:
+      parameters:
+      - description: Filter by status
+        in: query
+        name: status
+        type: string
+      - description: Filter by type
+        in: query
+        name: type
+        type: string
+      - description: Filter by target type
+        in: query
+        name: target_type
+        type: string
+      - description: Filter by target ID
+        in: query
+        name: target_id
+        type: string
+      - description: Filter by reported user
+        in: query
+        name: reported_user_id
+        type: string
+      - description: Filter by admin
+        in: query
+        name: admin_id
+        type: string
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 'Admin: list reports'
+      tags:
+      - admin-reports
+  /admin/reports/{id}:
+    get:
+      parameters:
+      - description: Report ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/services.ReportView'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api_err.ApiErr'
+      security:
+      - BearerAuth: []
+      summary: 'Admin: get report by ID'
+      tags:
+      - admin-reports
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Report ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Review decision
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/services.ReviewReportInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/services.ReportView'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api_err.ApiErr'
+      security:
+      - BearerAuth: []
+      summary: 'Admin: review a report'
+      tags:
+      - admin-reports
+  /admin/reviews:
+    get:
+      parameters:
+      - description: Filter by place ID
+        in: query
+        name: place_id
+        type: string
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 'Admin: list reviews'
+      tags:
+      - admin-reviews
+  /admin/reviews/{id}:
+    delete:
+      parameters:
+      - description: Review ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api_err.ApiErr'
+      security:
+      - BearerAuth: []
+      summary: 'Admin: delete review'
+      tags:
+      - admin-reviews
+  /admin/users:
+    get:
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 'Admin: list users'
+      tags:
+      - admin-users
+  /admin/users/{id}:
+    get:
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/services.AdminUserDetailView'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api_err.ApiErr'
+      security:
+      - BearerAuth: []
+      summary: 'Admin: get user by ID'
+      tags:
+      - admin-users
+  /admin/users/{id}/block:
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Block flag
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/services.BlockUserInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/services.Ok'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api_err.ApiErr'
+      security:
+      - BearerAuth: []
+      summary: 'Admin: block/unblock user'
+      tags:
+      - admin-users
+  /auth/me:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/services.MeView'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api_err.ApiErr'
+      security:
+      - BearerAuth: []
+      summary: Get current user profile
+      tags:
+      - auth
+  /auth/verify-code:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: OTP code
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/services.VerifyCodeInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/services.VerifyCodeOutput'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api_err.ApiErr'
+      summary: Verify OTP code and get token
+      tags:
+      - auth
+  /bookmarks:
+    get:
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api_err.ApiErr'
+      security:
+      - BearerAuth: []
+      summary: List own bookmarks
+      tags:
+      - bookmarks
+  /bookmarks/{placeId}:
+    delete:
+      parameters:
+      - description: Place ID
+        in: path
+        name: placeId
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api_err.ApiErr'
+      security:
+      - BearerAuth: []
+      summary: Remove bookmark
+      tags:
+      - bookmarks
+    post:
+      parameters:
+      - description: Place ID
+        in: path
+        name: placeId
+        required: true
+        type: string
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/services.BookmarkView'
+        "208":
+          description: Already Reported
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api_err.ApiErr'
+      security:
+      - BearerAuth: []
+      summary: Add bookmark
+      tags:
+      - bookmarks
+  /categories:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Category'
+            type: array
+      summary: List categories
+      tags:
+      - categories
+  /claims:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Claim data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/services.SubmitClaimInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/services.ClaimView'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api_err.ApiErr'
+      security:
+      - BearerAuth: []
+      summary: Submit a claim for a place
+      tags:
+      - claims
+  /claims/mine:
+    get:
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api_err.ApiErr'
+      security:
+      - BearerAuth: []
+      summary: List own claims
+      tags:
+      - claims
+  /files/upload:
+    post:
+      consumes:
+      - multipart/form-data
+      parameters:
+      - description: File to upload
+        in: formData
+        name: file
+        required: true
+        type: file
+      - description: Usage hint (e.g. avatar, place_logo)
+        in: formData
+        name: usage
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            properties:
+              file_id:
+                type: string
+              key:
+                type: string
+              url:
+                type: string
+              usage:
+                type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api_err.ApiErr'
+      security:
+      - BearerAuth: []
+      summary: Upload a file
+      tags:
+      - files
+  /places:
+    get:
+      parameters:
+      - description: Search query
+        in: query
+        name: query
+        type: string
+      - description: 'Sort: top|recent|nearest'
+        in: query
+        name: sort
+        type: string
+      - description: Category UUID
+        in: query
+        name: category_id
+        type: string
+      - description: lat,lon for nearest sort
+        in: query
+        name: near
+        type: string
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: object
+      summary: List places
+      tags:
+      - places
+  /places/{id}:
+    get:
+      parameters:
+      - description: Place UUID or slug
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/services.PlaceView'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api_err.ApiErr'
+      summary: Get place by ID or slug
+      tags:
+      - places
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Place UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Fields to update
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/services.EditPlaceInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/services.PlaceView'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api_err.ApiErr'
+      security:
+      - BearerAuth: []
+      summary: Edit own place (claimant only)
+      tags:
+      - places
+  /places/{id}/reviews:
+    get:
+      parameters:
+      - description: Place UUID
+        in: path
+        name: id
+        type: string
+      - description: 'Return full history (default: latest only)'
+        in: query
+        name: all
+        type: boolean
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api_err.ApiErr'
+      summary: List reviews for a place
+      tags:
+      - reviews
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Place UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Review data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/services.CreateReviewInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/services.ReviewView'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api_err.ApiErr'
+      security:
+      - BearerAuth: []
+      summary: Create a review for a place
+      tags:
+      - reviews
+  /places/create:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Place data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/services.CreatePlaceInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/services.PlaceView'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api_err.ApiErr'
+      security:
+      - BearerAuth: []
+      summary: Create a place
+      tags:
+      - places
+  /reports:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Report data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/services.SubmitReportInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/services.ReportView'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api_err.ApiErr'
+      security:
+      - BearerAuth: []
+      summary: Submit a report
+      tags:
+      - reports
+  /reports/{id}:
+    delete:
+      parameters:
+      - description: Report ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api_err.ApiErr'
+      security:
+      - BearerAuth: []
+      summary: Delete own report
+      tags:
+      - reports
+    get:
+      parameters:
+      - description: Report ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/services.ReportView'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api_err.ApiErr'
+      security:
+      - BearerAuth: []
+      summary: Get own report by ID
+      tags:
+      - reports
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Report ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Fields to update
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/services.EditReportInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/services.ReportView'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api_err.ApiErr'
+      security:
+      - BearerAuth: []
+      summary: Edit own report
+      tags:
+      - reports
+  /reports/meta:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/services.ReportMeta'
+      summary: Get report type metadata
+      tags:
+      - reports
+  /reports/mine:
+    get:
+      parameters:
+      - description: Filter by status
+        in: query
+        name: status
+        type: string
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api_err.ApiErr'
+      security:
+      - BearerAuth: []
+      summary: List own reports
+      tags:
+      - reports
+  /reviews/{id}:
+    delete:
+      parameters:
+      - description: Review ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api_err.ApiErr'
+      security:
+      - BearerAuth: []
+      summary: Delete own review
+      tags:
+      - reviews
+  /users/{id}:
+    get:
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/services.PublicUserView'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api_err.ApiErr'
+      summary: Get public user profile
+      tags:
+      - users
+  /users/{id}/reviews:
+    get:
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api_err.ApiErr'
+      summary: List reviews by a user
+      tags:
+      - users
+  /users/me:
+    delete:
+      responses:
+        "204":
+          description: No Content
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api_err.ApiErr'
+      security:
+      - BearerAuth: []
+      summary: Delete own account
+      tags:
+      - users
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Fields to update
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/services.UpdateMeInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/services.MeView'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api_err.ApiErr'
+      security:
+      - BearerAuth: []
+      summary: Update own profile
+      tags:
+      - users
+securityDefinitions:
+  BearerAuth:
+    description: 'Format: Bearer <token>'
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

@@ -7,8 +7,15 @@ import (
 	"github.com/itpu-student/s101_api/utils"
 )
 
-// POST /api/claims
-// Body: { place_id, phone, note? }
+// @Summary      Submit a claim for a place
+// @Tags         claims
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Param        body body services.SubmitClaimInput true "Claim data"
+// @Success      201 {object} services.ClaimView
+// @Failure      400 {object} api_err.ApiErr
+// @Router       /claims [post]
 func SubmitClaim(c *gin.Context) {
 	u := middleware.CurrentUser(c)
 	var in services.SubmitClaimInput
@@ -23,7 +30,15 @@ func SubmitClaim(c *gin.Context) {
 	utils.Created(c, cr)
 }
 
-// GET /api/claims/mine
+// @Summary      List own claims
+// @Tags         claims
+// @Security     BearerAuth
+// @Produce      json
+// @Param        page  query int false "Page number"
+// @Param        limit query int false "Page size"
+// @Success      200 {object} object
+// @Failure      401 {object} api_err.ApiErr
+// @Router       /claims/mine [get]
 func MyClaims(c *gin.Context) {
 	u := middleware.CurrentUser(c)
 	paging := utils.ParsePaging(c)

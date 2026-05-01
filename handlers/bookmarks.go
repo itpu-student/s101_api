@@ -7,7 +7,15 @@ import (
 	"github.com/itpu-student/s101_api/utils"
 )
 
-// GET /api/bookmarks — returns the user's bookmarked places.
+// @Summary      List own bookmarks
+// @Tags         bookmarks
+// @Security     BearerAuth
+// @Produce      json
+// @Param        page  query int false "Page number"
+// @Param        limit query int false "Page size"
+// @Success      200 {object} object
+// @Failure      401 {object} api_err.ApiErr
+// @Router       /bookmarks [get]
 func ListBookmarks(c *gin.Context) {
 	u := middleware.CurrentUser(c)
 	paging := utils.ParsePaging(c)
@@ -19,7 +27,14 @@ func ListBookmarks(c *gin.Context) {
 	utils.OK(c, view)
 }
 
-// POST /api/bookmarks/:placeId
+// @Summary      Add bookmark
+// @Tags         bookmarks
+// @Security     BearerAuth
+// @Param        placeId path string true "Place ID"
+// @Success      201 {object} services.BookmarkView
+// @Success      208
+// @Failure      401 {object} api_err.ApiErr
+// @Router       /bookmarks/{placeId} [post]
 func AddBookmark(c *gin.Context) {
 	u := middleware.CurrentUser(c)
 	placeID := c.Param("placeId")
@@ -37,7 +52,13 @@ func AddBookmark(c *gin.Context) {
 	utils.Created(c, b)
 }
 
-// DELETE /api/bookmarks/:placeId
+// @Summary      Remove bookmark
+// @Tags         bookmarks
+// @Security     BearerAuth
+// @Param        placeId path string true "Place ID"
+// @Success      204
+// @Failure      401 {object} api_err.ApiErr
+// @Router       /bookmarks/{placeId} [delete]
 func RemoveBookmark(c *gin.Context) {
 	u := middleware.CurrentUser(c)
 	placeID := c.Param("placeId")

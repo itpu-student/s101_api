@@ -4,10 +4,15 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/itpu-student/s101_api/handlers"
 	"github.com/itpu-student/s101_api/middleware"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
+
+	_ "github.com/itpu-student/s101_api/docs"
 )
 
 func Register(r *gin.Engine) {
 	r.GET("/healthz", func(c *gin.Context) { c.JSON(200, gin.H{"ok": true}) })
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	// public static file serving for uploaded assets
 	r.Static("/static", "./static")

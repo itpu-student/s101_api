@@ -12,7 +12,17 @@ import (
 	. "github.com/itpu-student/s101_api/utils/api_err"
 )
 
-// GET /api/places?query=&sort=top|recent|nearest&category=<uuid>&near=lat,lon&page=
+// @Summary      List places
+// @Tags         places
+// @Produce      json
+// @Param        query       query string false "Search query"
+// @Param        sort        query string false "Sort: top|recent|nearest"
+// @Param        category_id query string false "Category UUID"
+// @Param        near        query string false "lat,lon for nearest sort"
+// @Param        page        query int    false "Page number"
+// @Param        limit       query int    false "Page size"
+// @Success      200 {object} object
+// @Router       /places [get]
 func ListPlaces(c *gin.Context) {
 	paging := utils.ParsePaging(c)
 
@@ -41,7 +51,13 @@ func ListPlaces(c *gin.Context) {
 	utils.OK(c, page)
 }
 
-// GET /api/places/:id   (accepts UUID or slug)
+// @Summary      Get place by ID or slug
+// @Tags         places
+// @Produce      json
+// @Param        id path string true "Place UUID or slug"
+// @Success      200 {object} services.PlaceView
+// @Failure      404 {object} api_err.ApiErr
+// @Router       /places/{id} [get]
 func GetPlace(c *gin.Context) {
 	var viewerID *string
 	var viewerTyp *string
@@ -58,7 +74,15 @@ func GetPlace(c *gin.Context) {
 	utils.OK(c, view)
 }
 
-// POST /api/places/create
+// @Summary      Create a place
+// @Tags         places
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Param        body body services.CreatePlaceInput true "Place data"
+// @Success      201 {object} services.PlaceView
+// @Failure      400 {object} api_err.ApiErr
+// @Router       /places/create [post]
 func CreatePlace(c *gin.Context) {
 	u := middleware.CurrentUser(c)
 	var in services.CreatePlaceInput
@@ -73,7 +97,16 @@ func CreatePlace(c *gin.Context) {
 	utils.Created(c, p)
 }
 
-// PUT /api/places/:id   — only the claimant may edit. :id must be a UUID.
+// @Summary      Edit own place (claimant only)
+// @Tags         places
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Param        id   path string true "Place UUID"
+// @Param        body body services.EditPlaceInput true "Fields to update"
+// @Success      200 {object} services.PlaceView
+// @Failure      403 {object} api_err.ApiErr
+// @Router       /places/{id} [put]
 func EditPlace(c *gin.Context) {
 	u := middleware.CurrentUser(c)
 	id := c.Param("id")

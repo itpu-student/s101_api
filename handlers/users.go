@@ -7,7 +7,13 @@ import (
 	"github.com/itpu-student/s101_api/utils"
 )
 
-// GET /api/users/:id — public profile (no phone).
+// @Summary      Get public user profile
+// @Tags         users
+// @Produce      json
+// @Param        id path string true "User ID"
+// @Success      200 {object} services.PublicUserView
+// @Failure      404 {object} api_err.ApiErr
+// @Router       /users/{id} [get]
 func GetPublicUser(c *gin.Context) {
 	view, err := services.GetPublicUserView(c.Request.Context(), c.Param("id"))
 	if hasErr(c, err) {
@@ -16,7 +22,15 @@ func GetPublicUser(c *gin.Context) {
 	utils.OK(c, view)
 }
 
-// PUT /api/users/me
+// @Summary      Update own profile
+// @Tags         users
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Param        body body services.UpdateMeInput true "Fields to update"
+// @Success      200 {object} services.MeView
+// @Failure      401 {object} api_err.ApiErr
+// @Router       /users/me [put]
 func UpdateMe(c *gin.Context) {
 	u := middleware.CurrentUser(c)
 	var in services.UpdateMeInput
@@ -31,9 +45,12 @@ func UpdateMe(c *gin.Context) {
 	utils.OK(c, res)
 }
 
-// DELETE /api/users/me — hard delete.
-// Reviews and places stay but are orphaned (user_id / created_by -> null).
-// Bookmarks and claim requests are deleted.
+// @Summary      Delete own account
+// @Tags         users
+// @Security     BearerAuth
+// @Success      204
+// @Failure      401 {object} api_err.ApiErr
+// @Router       /users/me [delete]
 func DeleteMe(c *gin.Context) {
 	u := middleware.CurrentUser(c)
 	if hasErr(c, services.DeleteUserCascade(c.Request.Context(), u.ID)) {
@@ -42,7 +59,15 @@ func DeleteMe(c *gin.Context) {
 	utils.NoContent(c)
 }
 
-// GET /api/users/:id/reviews
+// @Summary      List reviews by a user
+// @Tags         users
+// @Produce      json
+// @Param        id    path  string true  "User ID"
+// @Param        page  query int    false "Page number"
+// @Param        limit query int    false "Page size"
+// @Success      200 {object} object
+// @Failure      404 {object} api_err.ApiErr
+// @Router       /users/{id}/reviews [get]
 func UserReviews(c *gin.Context) {
 	paging := utils.ParsePaging(c)
 	page, err := services.ListUserReviews(c.Request.Context(), c.Param("id"), paging)

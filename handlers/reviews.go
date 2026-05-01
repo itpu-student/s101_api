@@ -9,8 +9,16 @@ import (
 	. "github.com/itpu-student/s101_api/utils/api_err"
 )
 
-// GET /api/places/:id/reviews?all=true
-// By default only latest=true reviews. ?all=true returns full history.
+// @Summary      List reviews for a place
+// @Tags         reviews
+// @Produce      json
+// @Param        id    path  string false "Place UUID"
+// @Param        all   query bool   false "Return full history (default: latest only)"
+// @Param        page  query int    false "Page number"
+// @Param        limit query int    false "Page size"
+// @Success      200 {object} object
+// @Failure      400 {object} api_err.ApiErr
+// @Router       /places/{id}/reviews [get]
 func ListPlaceReviews(c *gin.Context) {
 	paging := utils.ParsePaging(c)
 	all := c.Query("all") == "true"
@@ -33,7 +41,16 @@ func ListPlaceReviews(c *gin.Context) {
 	utils.OK(c, page)
 }
 
-// POST /api/places/:id/reviews   — :id must be a UUID.
+// @Summary      Create a review for a place
+// @Tags         reviews
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Param        id   path string true "Place UUID"
+// @Param        body body services.CreateReviewInput true "Review data"
+// @Success      201 {object} services.ReviewView
+// @Failure      400 {object} api_err.ApiErr
+// @Router       /places/{id}/reviews [post]
 func CreateReview(c *gin.Context) {
 	u := middleware.CurrentUser(c)
 	id := c.Param("id")
@@ -53,7 +70,13 @@ func CreateReview(c *gin.Context) {
 	utils.Created(c, r)
 }
 
-// DELETE /api/reviews/:id   — author only
+// @Summary      Delete own review
+// @Tags         reviews
+// @Security     BearerAuth
+// @Param        id path string true "Review ID"
+// @Success      204
+// @Failure      403 {object} api_err.ApiErr
+// @Router       /reviews/{id} [delete]
 func DeleteReview(c *gin.Context) {
 	u := middleware.CurrentUser(c)
 	if hasErr(c, services.DeleteUserReview(c.Request.Context(), u.ID, c.Param("id"))) {

@@ -8,7 +8,16 @@ import (
 	. "github.com/itpu-student/s101_api/utils/api_err"
 )
 
-// POST /api/files/upload — multipart: file + usage.
+// @Summary      Upload a file
+// @Tags         files
+// @Security     BearerAuth
+// @Accept       multipart/form-data
+// @Produce      json
+// @Param        file  formData file   true  "File to upload"
+// @Param        usage formData string false "Usage hint (e.g. avatar, place_logo)"
+// @Success      201 {object} object{file_id=string,key=string,url=string,usage=string}
+// @Failure      400 {object} api_err.ApiErr
+// @Router       /files/upload [post]
 func UploadFile(c *gin.Context) {
 	u := middleware.CurrentUser(c)
 	usage := c.PostForm("usage")

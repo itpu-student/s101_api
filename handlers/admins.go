@@ -7,7 +7,14 @@ import (
 	"github.com/itpu-student/s101_api/utils"
 )
 
-// GET /api/admin/admins
+// @Summary      Admin: list admins
+// @Tags         admin-admins
+// @Security     BearerAuth
+// @Produce      json
+// @Param        page  query int false "Page number"
+// @Param        limit query int false "Page size"
+// @Success      200 {object} object
+// @Router       /admin/admins [get]
 func AdminListAdmins(c *gin.Context) {
 	paging := utils.ParsePaging(c)
 	page, err := services.ListAdmins(c.Request.Context(), paging)
@@ -17,7 +24,15 @@ func AdminListAdmins(c *gin.Context) {
 	utils.OK(c, page)
 }
 
-// POST /api/admin/admins
+// @Summary      Admin: create admin
+// @Tags         admin-admins
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Param        body body services.CreateAdminInput true "Admin data"
+// @Success      201 {object} models.Admin
+// @Failure      400 {object} api_err.ApiErr
+// @Router       /admin/admins [post]
 func AdminCreateAdmin(c *gin.Context) {
 	var in services.CreateAdminInput
 	if bindHasErr(c, &in) {
@@ -31,7 +46,14 @@ func AdminCreateAdmin(c *gin.Context) {
 	utils.Created(c, a)
 }
 
-// GET /api/admin/admins/:id
+// @Summary      Admin: get admin by ID
+// @Tags         admin-admins
+// @Security     BearerAuth
+// @Produce      json
+// @Param        id path string true "Admin UUID"
+// @Success      200 {object} models.Admin
+// @Failure      404 {object} api_err.ApiErr
+// @Router       /admin/admins/{id} [get]
 func AdminGetAdmin(c *gin.Context) {
 	id, ok := requireUUIDParam(c, "id")
 	if !ok {
@@ -44,7 +66,16 @@ func AdminGetAdmin(c *gin.Context) {
 	utils.OK(c, a)
 }
 
-// PUT /api/admin/admins/:id
+// @Summary      Admin: edit admin
+// @Tags         admin-admins
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Param        id   path string true "Admin UUID"
+// @Param        body body services.EditAdminInput true "Fields to update"
+// @Success      200 {object} models.Admin
+// @Failure      400 {object} api_err.ApiErr
+// @Router       /admin/admins/{id} [put]
 func AdminEditAdmin(c *gin.Context) {
 	id, ok := requireUUIDParam(c, "id")
 	if !ok {
