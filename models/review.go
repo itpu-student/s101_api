@@ -12,5 +12,6 @@ type Review struct {
 	Text          string    `bson:"text" json:"text"`
 	Images        []string  `bson:"images" json:"images"`
 	Latest        bool      `bson:"latest" json:"latest"`
+	PrevCount     int64     `bson:"prev_count" json:"prev_count"`
 	CreatedAt     time.Time `bson:"created_at" json:"created_at"`
 }

@@ -117,6 +117,9 @@ func CreateReview(ctx context.Context, userID string, placeID string, in CreateR
 		return nil, err
 	}
 
+	prevCount, _ := db.Reviews().CountDocuments(ctx,
+		bson.M{"place_id": p.ID, "user_id": userID, "latest": false})
+
 	now := time.Now().UTC()
 	r := models.Review{
 		ID:            utils.NewUUIDv7(),
@@ -128,6 +131,7 @@ func CreateReview(ctx context.Context, userID string, placeID string, in CreateR
 		Text:          in.Text,
 		Images:        CoalesceStrings(in.Images),
 		Latest:        true,
+		PrevCount:     prevCount,
 		CreatedAt:     now,
 	}
 	_, err = db.Reviews().InsertOne(ctx, r)
@@ -201,6 +205,49 @@ func RecalcPlaceRating(ctx context.Context, placeID string) error {
 		"updated_at":   time.Now().UTC(),
 	}})
 	return err
+}
+
+func GetReview(ctx context.Context, id string) (*ReviewView, error) {
+	var r models.Review
+	err := db.Reviews().FindOne(ctx, bson.M{"_id": id}).Decode(&r)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, NewApiErrS(404, AetNotFound, "review not found: %s", id)
+		}
+		return nil, err
+	}
+	v := buildReviewView(ctx, r)
+	return &v, nil
+}
+
+func ListPrevReviews(ctx context.Context, id string, paging utils.Paging) (*Page[ReviewView], error) {
+	var r models.Review
+	err := db.Reviews().FindOne(ctx, bson.M{"_id": id}).Decode(&r)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, NewApiErrS(404, AetNotFound, "review not found: %s", id)
+		}
+		return nil, err
+	}
+	if !r.Latest {
+		return nil, NewApiErrS(404, AetNotFound, "review not found: %s", id)
+	}
+	if r.UserID == nil {
+		return NewPage([]ReviewView{}, paging, 0), nil
+	}
+	filter := bson.M{"place_id": r.PlaceID, "user_id": *r.UserID, "latest": false}
+	cur, err := db.Reviews().Find(ctx, filter,
+		options.Find().SetSort(bson.D{{Key: "created_at", Value: -1}}).
+			SetSkip(paging.Skip).SetLimit(int64(paging.Limit)))
+	if err != nil {
+		return nil, err
+	}
+	var raw []models.Review
+	if err = cur.All(ctx, &raw); err != nil {
+		return nil, err
+	}
+	total, _ := db.Reviews().CountDocuments(ctx, filter)
+	return NewPage(buildReviewViews(ctx, raw), paging, total), nil
 }
 
 func round1(f float64) float64 {

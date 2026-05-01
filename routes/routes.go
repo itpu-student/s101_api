@@ -46,6 +46,8 @@ func Register(r *gin.Engine) {
 	// ---- reviews ----
 	api.GET("/places/:id/reviews", handlers.ListPlaceReviews)
 	api.POST("/places/:id/reviews", middleware.RequireUser(), handlers.CreateReview)
+	api.GET("/reviews/:id", handlers.GetReview)
+	api.GET("/reviews/prevs/:id", handlers.GetPrevReviews)
 	api.DELETE("/reviews/:id", middleware.RequireUser(), handlers.DeleteReview)
 
 	// ---- bookmarks (user-private) ----

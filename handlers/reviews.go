@@ -70,6 +70,39 @@ func CreateReview(c *gin.Context) {
 	utils.Created(c, r)
 }
 
+// @Summary      Get a review by ID
+// @Tags         reviews
+// @Produce      json
+// @Param        id path string true "Review ID"
+// @Success      200 {object} services.ReviewView
+// @Failure      404 {object} api_err.ApiErr
+// @Router       /reviews/{id} [get]
+func GetReview(c *gin.Context) {
+	v, err := services.GetReview(c.Request.Context(), c.Param("id"))
+	if hasErr(c, err) {
+		return
+	}
+	utils.OK(c, v)
+}
+
+// @Summary      List previous reviews (latest=false) for the same place+user
+// @Tags         reviews
+// @Produce      json
+// @Param        id    path  string true  "Review ID (must be latest=true)"
+// @Param        page  query int    false "Page number"
+// @Param        limit query int    false "Page size"
+// @Success      200 {object} services.Page[services.ReviewView]
+// @Failure      404 {object} api_err.ApiErr
+// @Router       /reviews/prevs/{id} [get]
+func GetPrevReviews(c *gin.Context) {
+	paging := utils.ParsePaging(c)
+	page, err := services.ListPrevReviews(c.Request.Context(), c.Param("id"), paging)
+	if hasErr(c, err) {
+		return
+	}
+	utils.OK(c, page)
+}
+
 // @Summary      Delete own review
 // @Tags         reviews
 // @Security     BearerAuth
