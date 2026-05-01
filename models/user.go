@@ -32,3 +32,19 @@ func (u *User) Public() *PublicUser {
 		CreatedAt: u.CreatedAt,
 	}
 }
+
+type UserMini struct {
+	ID        string  `json:"id"`
+	Name      string  `json:"name"`
+	Username  *string `json:"username,omitempty"`
+	AvatarKey *string `json:"avatar_key,omitempty"`
+}
+
+func (u *User) Mini() *UserMini {
+	return &UserMini{
+		ID:        u.ID,
+		Name:      u.Name,
+		Username:  u.Username,
+		AvatarKey: u.AvatarKey,
+	}
+}

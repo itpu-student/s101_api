@@ -17,7 +17,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-func ListPlacesAdmin(ctx context.Context, f PlaceFilter, paging utils.Paging) (*Page[models.Place], error) {
+func ListPlacesAdmin(ctx context.Context, f PlaceFilter, paging utils.Paging) (*Page[PlaceView], error) {
 	filter := bson.M{}
 	if f.Status != nil {
 		filter["status"] = *f.Status
@@ -28,13 +28,28 @@ func ListPlacesAdmin(ctx context.Context, f PlaceFilter, paging utils.Paging) (*
 	if err != nil {
 		return nil, err
 	}
-	var items []models.Place
-	err = cur.All(ctx, &items)
+	var raw []models.Place
+	err = cur.All(ctx, &raw)
 	if err != nil {
 		return nil, err
 	}
 	total, _ := db.Places().CountDocuments(ctx, filter)
+	items := make([]PlaceView, 0, len(raw))
+	for _, p := range raw {
+		items = append(items, *buildAdminPlaceView(ctx, p))
+	}
 	return NewPage(items, paging, total), nil
+}
+
+func buildAdminPlaceView(ctx context.Context, p models.Place) *PlaceView {
+	v := NewPlaceView(p)
+	v.CreatedByUser = lookupUserMini(ctx, p.CreatedBy)
+	v.ClaimedByUser = lookupUserMini(ctx, p.ClaimedBy)
+	var cat models.Category
+	if err := db.Categories().FindOne(ctx, bson.M{"_id": p.CategoryID}).Decode(&cat); err == nil {
+		v.CategoryName = &cat.Name
+	}
+	return v
 }
 
 func ListPlaces(ctx context.Context, f PlaceFilter, paging utils.Paging) (*Page[PlaceView], error) {
@@ -212,7 +227,7 @@ func EditPlace(ctx context.Context, claimantID string, id string, in EditPlaceIn
 }
 
 func SetPlaceStatus(ctx context.Context, id string, status models.Status) error {
-	if status != models.StatusPending && status != models.StatusApproved && status != models.StatusRejected {
+	if !status.IsValid() {
 		return NewApiErr(AetBadInput, "invalid status: %s", status)
 	}
 	res, err := db.Places().UpdateByID(ctx, id, bson.M{"$set": bson.M{

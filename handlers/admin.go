@@ -111,6 +111,15 @@ func AdminListUsers(c *gin.Context) {
 	utils.OK(c, page)
 }
 
+// GET /api/admin/users/:id
+func AdminGetUser(c *gin.Context) {
+	view, err := services.GetUserAdmin(c.Request.Context(), c.Param("id"))
+	if hasErr(c, err) {
+		return
+	}
+	utils.OK(c, view)
+}
+
 // PUT /api/admin/users/:id/block  { blocked: true|false }
 func AdminBlockUser(c *gin.Context) {
 	var in services.BlockUserInput

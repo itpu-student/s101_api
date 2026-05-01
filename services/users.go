@@ -18,6 +18,30 @@ import (
 
 var reUsername = regexp.MustCompile(`^[a-zA-Z0-9_]+$`)
 
+func GetUserAdmin(ctx context.Context, id string) (*AdminUserDetailView, error) {
+	var u models.User
+	if err := db.Users().FindOne(ctx, bson.M{"_id": id}).Decode(&u); err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, NewApiErrS(404, AetNotFound, "user not found: %s", id)
+		}
+		return nil, err
+	}
+	reviewCount, _ := db.Reviews().CountDocuments(ctx, bson.M{"user_id": id, "latest": true})
+	placeCount, _ := db.Places().CountDocuments(ctx, bson.M{"created_by": id})
+	claimedPlaceCount, _ := db.Places().CountDocuments(ctx, bson.M{"claimed_by": id})
+	claimCount, _ := db.ClaimRequests().CountDocuments(ctx, bson.M{"user_id": id})
+	reportCount, _ := db.Reports().CountDocuments(ctx, bson.M{"user_id": id})
+	return &AdminUserDetailView{
+		AdminUserView:     *NewAdminUserView(u),
+		ReviewCount:       reviewCount,
+		PlaceCount:        placeCount,
+		ClaimedPlaceCount: claimedPlaceCount,
+		ClaimCount:        claimCount,
+		ReportCount:       reportCount,
+		UpdatedAt:         u.UpdatedAt,
+	}, nil
+}
+
 func ListUsersAdmin(ctx context.Context, paging utils.Paging) (*Page[AdminUserView], error) {
 	filter := bson.M{}
 	cur, err := db.Users().Find(ctx, filter,
@@ -125,7 +149,7 @@ func DeleteUserCascade(ctx context.Context, id string) error {
 	return nil
 }
 
-func ListUserReviews(ctx context.Context, userID string, paging utils.Paging) (*Page[models.Review], error) {
+func ListUserReviews(ctx context.Context, userID string, paging utils.Paging) (*Page[ReviewView], error) {
 	filter := bson.M{"user_id": userID, "latest": true}
 	cur, err := db.Reviews().Find(ctx, filter,
 		options.Find().SetSort(bson.D{{Key: "created_at", Value: -1}}).
@@ -133,11 +157,11 @@ func ListUserReviews(ctx context.Context, userID string, paging utils.Paging) (*
 	if err != nil {
 		return nil, err
 	}
-	var items []models.Review
-	err = cur.All(ctx, &items)
+	var raw []models.Review
+	err = cur.All(ctx, &raw)
 	if err != nil {
 		return nil, err
 	}
 	total, _ := db.Reviews().CountDocuments(ctx, filter)
-	return NewPage(items, paging, total), nil
+	return NewPage(buildReviewViews(ctx, raw), paging, total), nil
 }

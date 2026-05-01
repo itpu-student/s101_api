@@ -12,7 +12,7 @@ import (
 	. "github.com/itpu-student/s101_api/utils/api_err"
 )
 
-func ListClaimsAdmin(ctx context.Context, f ClaimFilter, paging utils.Paging) (*Page[models.ClaimRequest], error) {
+func ListClaimsAdmin(ctx context.Context, f ClaimFilter, paging utils.Paging) (*Page[ClaimView], error) {
 	filter := bson.M{}
 	if f.Status != nil {
 		filter["status"] = *f.Status
@@ -23,12 +23,16 @@ func ListClaimsAdmin(ctx context.Context, f ClaimFilter, paging utils.Paging) (*
 	if err != nil {
 		return nil, err
 	}
-	var items []models.ClaimRequest
-	err = cur.All(ctx, &items)
+	var raw []models.ClaimRequest
+	err = cur.All(ctx, &raw)
 	if err != nil {
 		return nil, err
 	}
 	total, _ := db.ClaimRequests().CountDocuments(ctx, filter)
+	items := make([]ClaimView, 0, len(raw))
+	for _, cr := range raw {
+		items = append(items, ClaimView{ClaimRequest: cr, User: lookupUserMini(ctx, &cr.UserID)})
+	}
 	return NewPage(items, paging, total), nil
 }
 

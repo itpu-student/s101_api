@@ -102,6 +102,7 @@ func SeedBootstrapAdmin(ctx context.Context) {
 		Username:     username,
 		PasswordHash: hash,
 		Name:         name,
+		Power:        100,
 		CreatedAt:    time.Now().UTC(),
 	})
 	if err != nil {

@@ -115,6 +115,19 @@ func RequireAdmin() gin.HandlerFunc {
 	}
 }
 
+// RequireWritePrivilege rejects admins with power == 0 (read-only).
+// Must be used after RequireAdmin.
+func RequireWritePrivilege() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		a := CurrentAdmin(c)
+		if a == nil || a.Power == 0 {
+			abortErr(c, NewApiErrS(403, AetForbidden, "read-only admin"))
+			return
+		}
+		c.Next()
+	}
+}
+
 func CurrentUser(c *gin.Context) *models.User {
 	v, ok := c.Get(CTX_KEY_USER)
 	if !ok {

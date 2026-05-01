@@ -14,7 +14,7 @@ import (
 	. "github.com/itpu-student/s101_api/utils/api_err"
 )
 
-func ListReviewsAdmin(ctx context.Context, f ReviewFilter, paging utils.Paging) (*Page[models.Review], error) {
+func ListReviewsAdmin(ctx context.Context, f ReviewFilter, paging utils.Paging) (*Page[ReviewView], error) {
 	filter := bson.M{}
 	if f.PlaceID != nil {
 		filter["place_id"] = *f.PlaceID
@@ -25,13 +25,25 @@ func ListReviewsAdmin(ctx context.Context, f ReviewFilter, paging utils.Paging) 
 	if err != nil {
 		return nil, err
 	}
-	var items []models.Review
-	err = cur.All(ctx, &items)
+	var raw []models.Review
+	err = cur.All(ctx, &raw)
 	if err != nil {
 		return nil, err
 	}
 	total, _ := db.Reviews().CountDocuments(ctx, filter)
-	return NewPage(items, paging, total), nil
+	return NewPage(buildReviewViews(ctx, raw), paging, total), nil
+}
+
+func buildReviewView(ctx context.Context, r models.Review) ReviewView {
+	return ReviewView{Review: r, User: lookupUserMini(ctx, r.UserID)}
+}
+
+func buildReviewViews(ctx context.Context, rs []models.Review) []ReviewView {
+	out := make([]ReviewView, 0, len(rs))
+	for _, r := range rs {
+		out = append(out, buildReviewView(ctx, r))
+	}
+	return out
 }
 
 // AdminDeleteReview removes the review and preserves the "one latest per
@@ -63,7 +75,7 @@ func AdminDeleteReview(ctx context.Context, id string) error {
 	return RecalcPlaceRating(ctx, r.PlaceID)
 }
 
-func ListPlaceReviews(ctx context.Context, placeID string, all bool, paging utils.Paging) (*Page[models.Review], error) {
+func ListPlaceReviews(ctx context.Context, placeID string, all bool, paging utils.Paging) (*Page[ReviewView], error) {
 	filter := bson.M{"place_id": placeID}
 	if !all {
 		filter["latest"] = true
@@ -74,13 +86,13 @@ func ListPlaceReviews(ctx context.Context, placeID string, all bool, paging util
 	if err != nil {
 		return nil, err
 	}
-	var items []models.Review
-	err = cur.All(ctx, &items)
+	var raw []models.Review
+	err = cur.All(ctx, &raw)
 	if err != nil {
 		return nil, err
 	}
 	total, _ := db.Reviews().CountDocuments(ctx, filter)
-	return NewPage(items, paging, total), nil
+	return NewPage(buildReviewViews(ctx, raw), paging, total), nil
 }
 
 func CreateReview(ctx context.Context, userID string, placeID string, in CreateReviewInput) (*models.Review, error) {
