@@ -1837,7 +1837,85 @@ const docTemplate = `{
                 }
             }
         },
+        "/reviews/prevs/{id}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "reviews"
+                ],
+                "summary": "List previous reviews (latest=false) for the same place+user",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Review ID (must be latest=true)",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/services.Page-services_ReviewView"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api_err.ApiErr"
+                        }
+                    }
+                }
+            }
+        },
         "/reviews/{id}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "reviews"
+                ],
+                "summary": "Get a review by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Review ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/services.ReviewView"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api_err.ApiErr"
+                        }
+                    }
+                }
+            },
             "delete": {
                 "security": [
                     {
@@ -3127,6 +3205,9 @@ const docTemplate = `{
                 },
                 "place_id": {
                     "type": "string"
+                },
+                "prev_count": {
+                    "type": "integer"
                 },
                 "price_rating": {
                     "type": "integer"

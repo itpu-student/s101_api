@@ -740,6 +740,8 @@ definitions:
         type: boolean
       place_id:
         type: string
+      prev_count:
+        type: integer
       price_rating:
         type: integer
       quality_rating:
@@ -1959,6 +1961,57 @@ paths:
       security:
       - BearerAuth: []
       summary: Delete own review
+      tags:
+      - reviews
+    get:
+      parameters:
+      - description: Review ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/services.ReviewView'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api_err.ApiErr'
+      summary: Get a review by ID
+      tags:
+      - reviews
+  /reviews/prevs/{id}:
+    get:
+      parameters:
+      - description: Review ID (must be latest=true)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/services.Page-services_ReviewView'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api_err.ApiErr'
+      summary: List previous reviews (latest=false) for the same place+user
       tags:
       - reviews
   /users/{id}:
