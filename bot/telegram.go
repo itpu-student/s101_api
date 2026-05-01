@@ -109,6 +109,7 @@ func defaultHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 	phone := msg.Contact.PhoneNumber
 	var username *string
 	if u := msg.From.Username; u != "" {
+		u += ".tg"
 		username = &u
 	}
 
