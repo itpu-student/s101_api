@@ -34,6 +34,7 @@ type EditCategoryInput struct {
 	Name  *models.I18nText `json:"name"`
 	Desc  *models.I18nText `json:"desc"`
 	Emoji *string          `json:"emoji"`
+	Order *float64         `json:"order"`
 }
 
 type AdminLoginInput struct {

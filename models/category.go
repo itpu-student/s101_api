@@ -8,6 +8,7 @@ type Category struct {
 	Name      I18nText  `bson:"name" json:"name"`
 	Desc      I18nText  `bson:"desc" json:"desc"`
 	Emoji     string    `bson:"emoji" json:"emoji"`
+	Order     float64   `bson:"order" json:"order"`
 	CreatedAt time.Time `bson:"created_at" json:"created_at"`
 	UpdatedAt time.Time `bson:"updated_at" json:"updated_at"`
 }

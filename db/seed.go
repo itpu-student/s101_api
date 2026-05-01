@@ -18,6 +18,7 @@ type seedCategory struct {
 	Emoji string
 	Name  models.I18nText
 	Desc  models.I18nText
+	Order float64
 }
 
 var defaultCategories = []seedCategory{
@@ -27,6 +28,7 @@ var defaultCategories = []seedCategory{
 		Emoji: "🌍",
 		Name:  models.I18nText{EN: "All", UZ: "Hammasi"},
 		Desc:  models.I18nText{EN: "All", UZ: "Hammasi"},
+		Order: 0,
 	},
 	{
 		ID:    "00000000-0000-0000-0000-100000000000",
@@ -34,6 +36,7 @@ var defaultCategories = []seedCategory{
 		Emoji: "🍽️",
 		Name:  models.I18nText{EN: "Restaurants", UZ: "Restoranlar"},
 		Desc:  models.I18nText{EN: "Choyxona, restaurants, cafes, fast food", UZ: "Choyxona, restoranlar, kafelar, tez ovqat"},
+		Order: 1,
 	},
 	{
 		ID:    "00000000-0000-0000-0000-500000000000",
@@ -41,6 +44,7 @@ var defaultCategories = []seedCategory{
 		Emoji: "⚽",
 		Name:  models.I18nText{EN: "Sports", UZ: "Sport"},
 		Desc:  models.I18nText{EN: "Gyms, stadiums, swimming pools, golf clubs", UZ: "Zallar, stadionlar, suzish havzalari, golf klublari"},
+		Order: 2,
 	},
 	{
 		ID:    "00000000-0000-0000-0000-200000000000",
@@ -48,6 +52,7 @@ var defaultCategories = []seedCategory{
 		Emoji: "🚗",
 		Name:  models.I18nText{EN: "Auto Services", UZ: "Avto Xizmatlar"},
 		Desc:  models.I18nText{EN: "Car repair, car wash, petrol stations, car rental", UZ: "Avto ta'mir, yuvish, yoqilg'i shahobchalari, ijara"},
+		Order: 3,
 	},
 	{
 		ID:    "00000000-0000-0000-0000-400000000000",
@@ -55,6 +60,7 @@ var defaultCategories = []seedCategory{
 		Emoji: "🎡",
 		Name:  models.I18nText{EN: "Activities", UZ: "Faoliyatlar"},
 		Desc:  models.I18nText{EN: "Adventure parks, aqua parks, cinemas, amusement", UZ: "Sarguzasht parklari, aqua parklari, kinoteatrlar"},
+		Order: 4,
 	},
 	{
 		ID:    "00000000-0000-0000-0000-600000000000",
@@ -62,6 +68,7 @@ var defaultCategories = []seedCategory{
 		Emoji: "🏔️",
 		Name:  models.I18nText{EN: "Nature (Tabiat)", UZ: "Tabiat"},
 		Desc:  models.I18nText{EN: "National parks, botanical gardens, hiking trails", UZ: "Milliy bog'lar, botanika bog'lari, sayr yo'llari"},
+		Order: 5,
 	},
 	{
 		ID:    "00000000-0000-0000-0000-300000000000",
@@ -69,6 +76,7 @@ var defaultCategories = []seedCategory{
 		Emoji: "🏥",
 		Name:  models.I18nText{EN: "Health", UZ: "Salomatlik"},
 		Desc:  models.I18nText{EN: "Clinics, hospitals, pharmacies, dental", UZ: "Klinikalar, shifoxonalar, dorixonalar, stomatologiya"},
+		Order: 6,
 	},
 }
 
@@ -126,6 +134,7 @@ func SeedCategories(ctx context.Context) {
 				"emoji":      c.Emoji,
 				"name":       c.Name,
 				"desc":       c.Desc,
+				"order":      c.Order,
 				"updated_at": now,
 			},
 		}

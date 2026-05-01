@@ -12,7 +12,7 @@ import (
 )
 
 func ListCategories(ctx context.Context) ([]models.Category, error) {
-	cur, err := db.Categories().Find(ctx, bson.M{}, options.Find().SetSort(bson.D{{Key: "slug", Value: 1}}))
+	cur, err := db.Categories().Find(ctx, bson.M{}, options.Find().SetSort(bson.D{{Key: "order", Value: 1}}))
 	if err != nil {
 		return nil, err
 	}
@@ -33,6 +33,9 @@ func EditCategory(ctx context.Context, id string, in EditCategoryInput) error {
 	}
 	if in.Emoji != nil {
 		update["emoji"] = *in.Emoji
+	}
+	if in.Order != nil {
+		update["order"] = *in.Order
 	}
 	res, err := db.Categories().UpdateByID(ctx, id, bson.M{"$set": update})
 	if err != nil {
