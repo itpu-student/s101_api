@@ -1799,6 +1799,29 @@ paths:
       summary: Create a place
       tags:
       - places
+  /places/mine:
+    get:
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/services.Page-services_PlaceView'
+      security:
+      - BearerAuth: []
+      summary: List my places (created or claimed)
+      tags:
+      - places
   /reports:
     post:
       consumes:

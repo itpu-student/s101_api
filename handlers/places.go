@@ -126,6 +126,24 @@ func EditPlace(c *gin.Context) {
 	utils.OK(c, view)
 }
 
+// @Summary      List my places (created or claimed)
+// @Tags         places
+// @Security     BearerAuth
+// @Produce      json
+// @Param        page  query int false "Page number"
+// @Param        limit query int false "Page size"
+// @Success      200 {object} services.Page[services.PlaceView]
+// @Router       /places/mine [get]
+func MyPlaces(c *gin.Context) {
+	u := middleware.CurrentUser(c)
+	paging := utils.ParsePaging(c)
+	page, err := services.ListMyPlaces(c.Request.Context(), u.ID, paging)
+	if hasErr(c, err) {
+		return
+	}
+	utils.OK(c, page)
+}
+
 // ---- helpers ----
 
 func parseNear(s string) (lat, lon float64, ok bool) {

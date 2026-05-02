@@ -314,6 +314,29 @@ func DeletePlaceCascade(ctx context.Context, id string) error {
 	}
 	return nil
 }
+func ListMyPlaces(ctx context.Context, userID string, paging utils.Paging) (*Page[PlaceView], error) {
+	filter := bson.M{"$or": bson.A{
+		bson.M{"created_by": userID},
+		bson.M{"claimed_by": userID},
+	}}
+	cur, err := db.Places().Find(ctx, filter,
+		options.Find().SetSort(bson.D{{Key: "created_at", Value: -1}}).
+			SetSkip(paging.Skip).SetLimit(int64(paging.Limit)))
+	if err != nil {
+		return nil, err
+	}
+	var raw []models.Place
+	if err = cur.All(ctx, &raw); err != nil {
+		return nil, err
+	}
+	total, _ := db.Places().CountDocuments(ctx, filter)
+	items := make([]PlaceView, 0, len(raw))
+	for _, p := range raw {
+		items = append(items, *NewPlaceView(p))
+	}
+	return NewPage(items, paging, total), nil
+}
+
 func FindPlaceByID(ctx context.Context, id string) (*models.Place, error) {
 	return findPlaceBy(ctx, bson.M{"_id": id}, id)
 }

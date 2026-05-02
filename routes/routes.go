@@ -38,6 +38,7 @@ func Register(r *gin.Engine) {
 
 	// ---- places ----
 	api.GET("/places", handlers.ListPlaces)
+	api.GET("/places/mine", middleware.RequireUser(), handlers.MyPlaces)
 	// OptionalAuth lets creators/claimants see their own non-approved places.
 	api.GET("/places/:id", middleware.OptionalAuth(), handlers.GetPlace)
 	api.POST("/places/create", middleware.RequireUser(), handlers.CreatePlace)
