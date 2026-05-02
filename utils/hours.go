@@ -9,23 +9,28 @@ import (
 // IsOpen returns whether a place is currently open given its weekly_hours
 // and a reference time. Comparison happens in the supplied time's local zone.
 // Ranges that cross midnight (e.g. 22:00 -> 02:00) are supported.
-func IsOpen(wh models.WeeklyHours, now time.Time) bool {
+func IsOpen(wh models.WeeklyHours, now time.Time) *bool {
+	if wh.IsBlank() {
+		return nil
+	}
+
 	day := dayRanges(wh, now.Weekday())
 	prev := dayRanges(wh, (now.Weekday()+6)%7) // yesterday
 	cur := hhmm(now)
+	pt, pf := true, false
 
 	for _, r := range day {
 		if isWithin(r, cur, false) {
-			return true
+			return &pt
 		}
 	}
 	// yesterday's overnight range that extended past midnight
 	for _, r := range prev {
 		if r.Close < r.Open && cur < r.Close {
-			return true
+			return &pt
 		}
 	}
-	return false
+	return &pf
 }
 
 func isWithin(r models.HourRange, cur string, overnight bool) bool {

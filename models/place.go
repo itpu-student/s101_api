@@ -52,3 +52,13 @@ type Place struct {
 	CreatedAt    time.Time   `bson:"created_at" json:"created_at"`
 	UpdatedAt    time.Time   `bson:"updated_at" json:"updated_at"`
 }
+
+func (wh WeeklyHours) IsBlank() bool {
+	for _, day := range [][]HourRange{wh.Mon, wh.Tue, wh.Wed, wh.Thu, wh.Fri, wh.Sat, wh.Sun} {
+		if len(day) > 0 {
+			return false
+		}
+	}
+	return true
+}
+
