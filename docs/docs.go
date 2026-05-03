@@ -2052,7 +2052,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/users/{id}": {
+        "/users/{alias}": {
             "get": {
                 "produces": [
                     "application/json"
@@ -2064,8 +2064,8 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "User ID",
-                        "name": "id",
+                        "description": "User ID (UUID) or username",
+                        "name": "alias",
                         "in": "path",
                         "required": true
                     }
@@ -2317,6 +2317,53 @@ const docTemplate = `{
                 },
                 "uz": {
                     "type": "string"
+                }
+            }
+        },
+        "models.PlaceMini": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "$ref": "#/definitions/models.I18nText"
+                },
+                "avg_rating": {
+                    "type": "number"
+                },
+                "category_id": {
+                    "type": "string"
+                },
+                "description": {
+                    "$ref": "#/definitions/models.I18nText"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "lat": {
+                    "type": "number"
+                },
+                "location": {
+                    "$ref": "#/definitions/models.GeoPoint"
+                },
+                "logo_key": {
+                    "type": "string"
+                },
+                "lon": {
+                    "type": "number"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "phone": {
+                    "type": "string"
+                },
+                "review_count": {
+                    "type": "integer"
+                },
+                "slug": {
+                    "type": "string"
+                },
+                "weekly_hours": {
+                    "$ref": "#/definitions/models.WeeklyHours"
                 }
             }
         },
@@ -3240,6 +3287,9 @@ const docTemplate = `{
                 },
                 "latest": {
                     "type": "boolean"
+                },
+                "place": {
+                    "$ref": "#/definitions/models.PlaceMini"
                 },
                 "place_id": {
                     "type": "string"

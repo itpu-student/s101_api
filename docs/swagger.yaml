@@ -130,6 +130,37 @@ definitions:
       uz:
         type: string
     type: object
+  models.PlaceMini:
+    properties:
+      address:
+        $ref: '#/definitions/models.I18nText'
+      avg_rating:
+        type: number
+      category_id:
+        type: string
+      description:
+        $ref: '#/definitions/models.I18nText'
+      id:
+        type: string
+      lat:
+        type: number
+      location:
+        $ref: '#/definitions/models.GeoPoint'
+      logo_key:
+        type: string
+      lon:
+        type: number
+      name:
+        type: string
+      phone:
+        type: string
+      review_count:
+        type: integer
+      slug:
+        type: string
+      weekly_hours:
+        $ref: '#/definitions/models.WeeklyHours'
+    type: object
   models.PublicUser:
     properties:
       avatar_key:
@@ -738,6 +769,8 @@ definitions:
         type: array
       latest:
         type: boolean
+      place:
+        $ref: '#/definitions/models.PlaceMini'
       place_id:
         type: string
       prev_count:
@@ -2037,12 +2070,12 @@ paths:
       summary: List previous reviews (latest=false) for the same place+user
       tags:
       - reviews
-  /users/{id}:
+  /users/{alias}:
     get:
       parameters:
-      - description: User ID
+      - description: User ID (UUID) or username
         in: path
-        name: id
+        name: alias
         required: true
         type: string
       produces:
