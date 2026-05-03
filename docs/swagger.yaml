@@ -2100,6 +2100,14 @@ paths:
         name: id
         required: true
         type: string
+      - description: used to fileter if defined
+        in: query
+        name: latest
+        type: boolean
+      - description: used to fileter if defined
+        in: query
+        name: place_id
+        type: string
       - description: Page number
         in: query
         name: page

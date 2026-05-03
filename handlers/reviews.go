@@ -88,7 +88,7 @@ func GetReview(c *gin.Context) {
 // @Summary      List previous reviews (latest=false) for the same place+user
 // @Tags         reviews
 // @Produce      json
-// @Param        id    path  string true  "Review ID (must be latest=true)"
+// @Param        id    path  string true  "Review ID"
 // @Param        page  query int    false "Page number"
 // @Param        limit query int    false "Page size"
 // @Success      200 {object} services.Page[services.ReviewView]

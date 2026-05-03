@@ -15,7 +15,8 @@ import (
 // @Failure      404 {object} api_err.ApiErr
 // @Router       /users/{alias} [get]
 func GetPublicUser(c *gin.Context) {
-	view, err := services.GetPublicUserView(c.Request.Context(), c.Param("alias"))
+	alias := c.Param("id")
+	view, err := services.GetPublicUserView(c.Request.Context(), alias)
 	if hasErr(c, err) {
 		return
 	}
@@ -62,15 +63,23 @@ func DeleteMe(c *gin.Context) {
 // @Summary      List reviews by a user
 // @Tags         users
 // @Produce      json
-// @Param        id    path  string true  "User ID"
-// @Param        page  query int    false "Page number"
-// @Param        limit query int    false "Page size"
+// @Param        id       path  string true  "User ID"
+// @Param        latest   query bool   false "used to fileter if defined"
+// @Param        place_id query string false "used to fileter if defined"
+// @Param        page     query int    false "Page number"
+// @Param        limit    query int    false "Page size"
 // @Success      200 {object} services.Page[services.ReviewView]
 // @Failure      404 {object} api_err.ApiErr
 // @Router       /users/{id}/reviews [get]
 func UserReviews(c *gin.Context) {
 	paging := utils.ParsePaging(c)
-	page, err := services.ListUserReviews(c.Request.Context(), c.Param("id"), paging)
+	var f services.ReviewFilter
+	c.ShouldBindQuery(&f)
+
+	id := c.Param("id")
+	f.UserID = &id
+
+	page, err := services.ListUserReviews(c.Request.Context(), f, paging)
 	if hasErr(c, err) {
 		return
 	}

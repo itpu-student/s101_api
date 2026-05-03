@@ -2104,6 +2104,18 @@ const docTemplate = `{
                         "required": true
                     },
                     {
+                        "type": "boolean",
+                        "description": "used to fileter if defined",
+                        "name": "latest",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "used to fileter if defined",
+                        "name": "place_id",
+                        "in": "query"
+                    },
+                    {
                         "type": "integer",
                         "description": "Page number",
                         "name": "page",

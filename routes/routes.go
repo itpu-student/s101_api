@@ -28,7 +28,7 @@ func Register(r *gin.Engine) {
 	api.GET("/admin/auth/me", middleware.RequireAdmin(), handlers.AdminMe)
 
 	// ---- users ----
-	api.GET("/users/:alias", handlers.GetPublicUser)
+	api.GET("/users/:id", handlers.GetPublicUser)
 	api.GET("/users/:id/reviews", handlers.UserReviews)
 	api.PUT("/users/me", middleware.RequireUser(), handlers.UpdateMe)
 	api.DELETE("/users/me", middleware.RequireUser(), handlers.DeleteMe)

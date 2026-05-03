@@ -11,10 +11,10 @@ import (
 	"github.com/itpu-student/s101_api/db"
 	"github.com/itpu-student/s101_api/models"
 	"github.com/itpu-student/s101_api/utils"
+	. "github.com/itpu-student/s101_api/utils/api_err"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	. "github.com/itpu-student/s101_api/utils/api_err"
 )
 
 var reUsername = regexp.MustCompile(`^[a-zA-Z0-9_]+$`)
@@ -156,8 +156,17 @@ func DeleteUserCascade(ctx context.Context, id string) error {
 	return nil
 }
 
-func ListUserReviews(ctx context.Context, userID string, paging utils.Paging) (*Page[ReviewView], error) {
-	filter := bson.M{"user_id": userID, "latest": true}
+func ListUserReviews(ctx context.Context, f ReviewFilter, paging utils.Paging) (*Page[ReviewView], error) {
+	filter := bson.M{}
+	if f.PlaceID != nil {
+		filter["place_id"] = *f.PlaceID
+	}
+	if f.UserID != nil {
+		filter["user_id"] = *f.UserID
+	}
+	if f.Latest != nil {
+		filter["latest"] = *f.Latest
+	}
 	cur, err := db.Reviews().Find(ctx, filter,
 		options.Find().SetSort(bson.D{{Key: "created_at", Value: -1}}).
 			SetSkip(paging.Skip).SetLimit(int64(paging.Limit)))

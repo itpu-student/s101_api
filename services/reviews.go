@@ -19,6 +19,13 @@ func ListReviewsAdmin(ctx context.Context, f ReviewFilter, paging utils.Paging) 
 	if f.PlaceID != nil {
 		filter["place_id"] = *f.PlaceID
 	}
+	if f.UserID != nil {
+		filter["user_id"] = *f.UserID
+	}
+	if f.Latest != nil {
+		filter["latest"] = *f.Latest
+	}
+
 	cur, err := db.Reviews().Find(ctx, filter,
 		options.Find().SetSort(bson.D{{Key: "created_at", Value: -1}}).
 			SetSkip(paging.Skip).SetLimit(int64(paging.Limit)))
@@ -229,13 +236,10 @@ func ListPrevReviews(ctx context.Context, id string, paging utils.Paging) (*Page
 		}
 		return nil, err
 	}
-	if !r.Latest {
-		return nil, NewApiErrS(404, AetNotFound, "review not found: %s", id)
-	}
 	if r.UserID == nil {
 		return NewPage([]ReviewView{}, paging, 0), nil
 	}
-	filter := bson.M{"place_id": r.PlaceID, "user_id": *r.UserID, "latest": false}
+	filter := bson.M{"place_id": r.PlaceID, "user_id": *r.UserID, "_id": bson.M{"$lt": id}}
 	cur, err := db.Reviews().Find(ctx, filter,
 		options.Find().SetSort(bson.D{{Key: "created_at", Value: -1}}).
 			SetSkip(paging.Skip).SetLimit(int64(paging.Limit)))
