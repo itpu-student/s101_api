@@ -413,6 +413,17 @@ func lookupPublicUser(ctx context.Context, id *string) *models.PublicUser {
 	return u.Public()
 }
 
+func lookupPlaceMini(ctx context.Context, id string) *models.PlaceMini {
+	if id == "" {
+		return nil
+	}
+	var p models.Place
+	if err := db.Places().FindOne(ctx, bson.M{"_id": id}).Decode(&p); err != nil {
+		return nil
+	}
+	return p.Mini()
+}
+
 func lookupUserMini(ctx context.Context, id *string) *models.UserMini {
 	if id == nil || *id == "" {
 		return nil

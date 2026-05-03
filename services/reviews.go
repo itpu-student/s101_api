@@ -35,7 +35,7 @@ func ListReviewsAdmin(ctx context.Context, f ReviewFilter, paging utils.Paging) 
 }
 
 func buildReviewView(ctx context.Context, r models.Review) ReviewView {
-	return ReviewView{Review: r, User: lookupUserMini(ctx, r.UserID)}
+	return ReviewView{Review: r, User: lookupUserMini(ctx, r.UserID), Place: lookupPlaceMini(ctx, r.PlaceID)}
 }
 
 func buildReviewViews(ctx context.Context, rs []models.Review) []ReviewView {

@@ -114,10 +114,11 @@ func NewPlaceView(p models.Place) *PlaceView {
 	return &PlaceView{Place: p, IsOpen: utils.IsOpen(p.WeeklyHours, time.Now())}
 }
 
-// ReviewView wraps a Review with the author's UserMini for list endpoints.
+// ReviewView wraps a Review with the author's UserMini and place for list endpoints.
 type ReviewView struct {
 	models.Review
-	User *models.UserMini `json:"user,omitempty"`
+	User  *models.UserMini  `json:"user,omitempty"`
+	Place *models.PlaceMini `json:"place,omitempty"`
 }
 
 // ClaimView wraps a ClaimRequest with the claimant's UserMini for admin endpoints.

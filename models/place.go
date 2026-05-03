@@ -53,6 +53,42 @@ type Place struct {
 	UpdatedAt    time.Time   `bson:"updated_at" json:"updated_at"`
 }
 
+type PlaceMini struct {
+	ID          string      `json:"id"`
+	Slug        string      `json:"slug"`
+	Name        string      `json:"name"`
+	CategoryID  string      `json:"category_id"`
+	Address     I18nText    `json:"address"`
+	Phone       string      `json:"phone"`
+	Description I18nText    `json:"description"`
+	Lat         float64     `json:"lat"`
+	Lon         float64     `json:"lon"`
+	Location    GeoPoint    `json:"location"`
+	LogoKey     string      `json:"logo_key"`
+	WeeklyHours WeeklyHours `json:"weekly_hours"`
+	AvgRating   float64     `json:"avg_rating"`
+	ReviewCount int         `json:"review_count"`
+}
+
+func (p *Place) Mini() *PlaceMini {
+	return &PlaceMini{
+		ID:          p.ID,
+		Slug:        p.Slug,
+		Name:        p.Name,
+		CategoryID:  p.CategoryID,
+		Address:     p.Address,
+		Phone:       p.Phone,
+		Description: p.Description,
+		Lat:         p.Lat,
+		Lon:         p.Lon,
+		Location:    p.Location,
+		LogoKey:     p.LogoKey,
+		WeeklyHours: p.WeeklyHours,
+		AvgRating:   p.AvgRating,
+		ReviewCount: p.ReviewCount,
+	}
+}
+
 func (wh WeeklyHours) IsBlank() bool {
 	for _, day := range [][]HourRange{wh.Mon, wh.Tue, wh.Wed, wh.Thu, wh.Fri, wh.Sat, wh.Sun} {
 		if len(day) > 0 {
