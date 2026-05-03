@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/itpu-student/s101_api/db"
 	"github.com/itpu-student/s101_api/models"
 	"github.com/itpu-student/s101_api/utils"
@@ -77,12 +78,18 @@ func SetUserBlocked(ctx context.Context, id string, blocked bool) error {
 	return nil
 }
 
-func GetPublicUserView(ctx context.Context, id string) (*PublicUserView, error) {
+func GetPublicUserView(ctx context.Context, alias string) (*PublicUserView, error) {
+	var filter bson.M
+	if _, err := uuid.Parse(alias); err == nil {
+		filter = bson.M{"_id": alias}
+	} else {
+		filter = bson.M{"username": strings.ToLower(strings.TrimSpace(alias))}
+	}
 	var u models.User
-	err := db.Users().FindOne(ctx, bson.M{"_id": id}).Decode(&u)
+	err := db.Users().FindOne(ctx, filter).Decode(&u)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, NewApiErrS(404, AetNotFound, "user not found: %s", id)
+			return nil, NewApiErrS(404, AetNotFound, "user not found: %s", alias)
 		}
 		return nil, err
 	}

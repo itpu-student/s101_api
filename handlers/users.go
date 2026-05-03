@@ -10,12 +10,12 @@ import (
 // @Summary      Get public user profile
 // @Tags         users
 // @Produce      json
-// @Param        id path string true "User ID"
+// @Param        alias path string true "User ID (UUID) or username"
 // @Success      200 {object} services.PublicUserView
 // @Failure      404 {object} api_err.ApiErr
-// @Router       /users/{id} [get]
+// @Router       /users/{alias} [get]
 func GetPublicUser(c *gin.Context) {
-	view, err := services.GetPublicUserView(c.Request.Context(), c.Param("id"))
+	view, err := services.GetPublicUserView(c.Request.Context(), c.Param("alias"))
 	if hasErr(c, err) {
 		return
 	}
