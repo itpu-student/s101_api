@@ -238,6 +238,9 @@ func ReviewReport(ctx context.Context, reportID, adminID string, in ReviewReport
 	if in.BlockReportedUser && r.ReportedUserID == nil {
 		return nil, NewApiErr(AetBadInput, "block_reported_user requires a known reported_user_id")
 	}
+	if in.SuspendPlace && r.TargetType != models.ReportTargetPlace {
+		return nil, NewApiErr(AetBadInput, "suspend_place only valid when target_type is 'place'")
+	}
 
 	if in.DeleteTargetReview {
 		if err := AdminDeleteReview(ctx, r.TargetID); err != nil {
@@ -250,6 +253,15 @@ func ReviewReport(ctx context.Context, reportID, adminID string, in ReviewReport
 	if in.BlockReportedUser {
 		_, err := db.Users().UpdateByID(ctx, *r.ReportedUserID, bson.M{"$set": bson.M{
 			"blocked":    true,
+			"updated_at": time.Now().UTC(),
+		}})
+		if err != nil {
+			return nil, err
+		}
+	}
+	if in.SuspendPlace {
+		_, err := db.Places().UpdateByID(ctx, r.TargetID, bson.M{"$set": bson.M{
+			"status":     models.StatusSuspended,
 			"updated_at": time.Now().UTC(),
 		}})
 		if err != nil {

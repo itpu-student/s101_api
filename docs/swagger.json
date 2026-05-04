@@ -2278,7 +2278,13 @@
                     "type": "string"
                 },
                 "status": {
-                    "$ref": "#/definitions/models.Status"
+                    "type": "string",
+                    "enum": [
+                        "pending",
+                        "approved",
+                        "rejected",
+                        "suspended"
+                    ]
                 },
                 "updated_at": {
                     "type": "string"
@@ -2432,19 +2438,6 @@
                 "ReportTypeMisleading",
                 "ReportTypeInappropriate",
                 "ReportTypeProfanity"
-            ]
-        },
-        "models.Status": {
-            "type": "integer",
-            "enum": [
-                -10,
-                0,
-                10
-            ],
-            "x-enum-varnames": [
-                "StatusRejected",
-                "StatusPending",
-                "StatusApproved"
             ]
         },
         "models.UserMini": {
@@ -2697,7 +2690,13 @@
                     "type": "string"
                 },
                 "status": {
-                    "$ref": "#/definitions/models.Status"
+                    "type": "string",
+                    "enum": [
+                        "pending",
+                        "approved",
+                        "rejected",
+                        "suspended"
+                    ]
                 },
                 "updated_at": {
                     "type": "string"
@@ -2892,7 +2891,13 @@
                     "type": "boolean"
                 },
                 "status": {
-                    "$ref": "#/definitions/models.Status"
+                    "type": "string",
+                    "enum": [
+                        "pending",
+                        "approved",
+                        "rejected",
+                        "suspended"
+                    ]
                 }
             }
         },
@@ -3129,7 +3134,13 @@
                     "type": "string"
                 },
                 "status": {
-                    "$ref": "#/definitions/models.Status"
+                    "type": "string",
+                    "enum": [
+                        "pending",
+                        "approved",
+                        "rejected",
+                        "suspended"
+                    ]
                 },
                 "updated_at": {
                     "type": "string"
@@ -3255,7 +3266,13 @@
             "type": "object",
             "properties": {
                 "status": {
-                    "$ref": "#/definitions/models.Status"
+                    "type": "string",
+                    "enum": [
+                        "pending",
+                        "approved",
+                        "rejected",
+                        "suspended"
+                    ]
                 }
             }
         },
@@ -3273,6 +3290,9 @@
                 },
                 "status": {
                     "$ref": "#/definitions/models.ReportStatus"
+                },
+                "suspend_place": {
+                    "type": "boolean"
                 }
             }
         },
@@ -3327,7 +3347,13 @@
             "type": "object",
             "properties": {
                 "status": {
-                    "$ref": "#/definitions/models.Status"
+                    "type": "string",
+                    "enum": [
+                        "pending",
+                        "approved",
+                        "rejected",
+                        "suspended"
+                    ]
                 }
             }
         },

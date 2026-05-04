@@ -27,7 +27,7 @@ func NewPage[T any](items []T, paging utils.Paging, total int64) *Page[T] {
 // correctly — a nil pointer means "this endpoint didn't set it".
 type Ok struct {
 	Ok      bool           `json:"ok"`
-	Status  *models.Status `json:"status,omitempty"`
+	Status  *models.Status `json:"status,omitempty" swaggertype:"string" enums:"pending,approved,rejected,suspended"`
 	Blocked *bool          `json:"blocked,omitempty"`
 }
 

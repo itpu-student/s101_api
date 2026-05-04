@@ -44,7 +44,7 @@ type Place struct {
 	LogoKey      string      `bson:"logo_key" json:"logo_key"`
 	Images       []string    `bson:"images" json:"images"`
 	WeeklyHours  WeeklyHours `bson:"weekly_hours" json:"weekly_hours"`
-	Status       Status      `bson:"status" json:"status"`
+	Status       Status      `bson:"status" json:"status" swaggertype:"string" enums:"pending,approved,rejected,suspended"`
 	AvgRating    float64     `bson:"avg_rating" json:"avg_rating"`
 	ReviewCount  int         `bson:"review_count" json:"review_count"`
 	CreatedBy    *string     `bson:"created_by" json:"created_by"`

@@ -17,9 +17,10 @@ type I18nText struct {
 type Status int
 
 const (
-	StatusRejected Status = -10
-	StatusPending  Status = 0
-	StatusApproved Status = 10
+	StatusRejected  Status = -10
+	StatusSuspended Status = -5
+	StatusPending   Status = 0
+	StatusApproved  Status = 10
 )
 
 func (s Status) IsValid() bool {
@@ -27,6 +28,7 @@ func (s Status) IsValid() bool {
 	case StatusPending:
 	case StatusApproved:
 	case StatusRejected:
+	case StatusSuspended:
 	default:
 		return false
 	}
@@ -41,6 +43,8 @@ func (s Status) String() string {
 		return "approved"
 	case StatusRejected:
 		return "rejected"
+	case StatusSuspended:
+		return "suspended"
 	default:
 		return "unknown"
 	}
@@ -73,6 +77,8 @@ func ParseStatus(s string) (Status, bool) {
 		return StatusApproved, true
 	case "rejected":
 		return StatusRejected, true
+	case "suspended":
+		return StatusSuspended, true
 	}
 	return 0, false
 }

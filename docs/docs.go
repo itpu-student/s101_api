@@ -2284,7 +2284,13 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "status": {
-                    "$ref": "#/definitions/models.Status"
+                    "type": "string",
+                    "enum": [
+                        "pending",
+                        "approved",
+                        "rejected",
+                        "suspended"
+                    ]
                 },
                 "updated_at": {
                     "type": "string"
@@ -2438,19 +2444,6 @@ const docTemplate = `{
                 "ReportTypeMisleading",
                 "ReportTypeInappropriate",
                 "ReportTypeProfanity"
-            ]
-        },
-        "models.Status": {
-            "type": "integer",
-            "enum": [
-                -10,
-                0,
-                10
-            ],
-            "x-enum-varnames": [
-                "StatusRejected",
-                "StatusPending",
-                "StatusApproved"
             ]
         },
         "models.UserMini": {
@@ -2703,7 +2696,13 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "status": {
-                    "$ref": "#/definitions/models.Status"
+                    "type": "string",
+                    "enum": [
+                        "pending",
+                        "approved",
+                        "rejected",
+                        "suspended"
+                    ]
                 },
                 "updated_at": {
                     "type": "string"
@@ -2898,7 +2897,13 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "status": {
-                    "$ref": "#/definitions/models.Status"
+                    "type": "string",
+                    "enum": [
+                        "pending",
+                        "approved",
+                        "rejected",
+                        "suspended"
+                    ]
                 }
             }
         },
@@ -3135,7 +3140,13 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "status": {
-                    "$ref": "#/definitions/models.Status"
+                    "type": "string",
+                    "enum": [
+                        "pending",
+                        "approved",
+                        "rejected",
+                        "suspended"
+                    ]
                 },
                 "updated_at": {
                     "type": "string"
@@ -3261,7 +3272,13 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "status": {
-                    "$ref": "#/definitions/models.Status"
+                    "type": "string",
+                    "enum": [
+                        "pending",
+                        "approved",
+                        "rejected",
+                        "suspended"
+                    ]
                 }
             }
         },
@@ -3279,6 +3296,9 @@ const docTemplate = `{
                 },
                 "status": {
                     "$ref": "#/definitions/models.ReportStatus"
+                },
+                "suspend_place": {
+                    "type": "boolean"
                 }
             }
         },
@@ -3333,7 +3353,13 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "status": {
-                    "$ref": "#/definitions/models.Status"
+                    "type": "string",
+                    "enum": [
+                        "pending",
+                        "approved",
+                        "rejected",
+                        "suspended"
+                    ]
                 }
             }
         },
