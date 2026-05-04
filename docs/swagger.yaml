@@ -2043,7 +2043,7 @@ paths:
   /reviews/prevs/{id}:
     get:
       parameters:
-      - description: Review ID (must be latest=true)
+      - description: Review ID
         in: path
         name: id
         required: true

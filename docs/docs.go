@@ -1887,7 +1887,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Review ID (must be latest=true)",
+                        "description": "Review ID",
                         "name": "id",
                         "in": "path",
                         "required": true
