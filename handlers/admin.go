@@ -54,6 +54,8 @@ func AdminListPlaces(c *gin.Context) {
 // @Failure      400 {object} api_err.ApiErr
 // @Router       /admin/places/{id}/status [put]
 func AdminSetPlaceStatus(c *gin.Context) {
+	a := middleware.CurrentAdmin(c)
+
 	id, ok := requireUUIDParam(c, "id")
 	if !ok {
 		return
@@ -62,7 +64,10 @@ func AdminSetPlaceStatus(c *gin.Context) {
 	if bindHasErr(c, &in) {
 		return
 	}
-	if hasErr(c, services.SetPlaceStatus(c.Request.Context(), id, in.Status)) {
+
+	in.PlaceID = id
+	in.AdminID = a.ID
+	if hasErr(c, services.SetPlaceStatus(c.Request.Context(), in)) {
 		return
 	}
 	utils.OK(c, services.Ok{Ok: true})

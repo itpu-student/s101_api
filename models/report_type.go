@@ -77,3 +77,8 @@ func ParseReportStatus(s string) (ReportStatus, bool) {
 	}
 	return "", false
 }
+
+func (s ReportStatus) IsValid() bool {
+	_, ok := ParseReportStatus(string(s))
+	return ok
+}

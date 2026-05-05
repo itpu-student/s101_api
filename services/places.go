@@ -226,19 +226,20 @@ func EditPlace(ctx context.Context, claimantID string, id string, in EditPlaceIn
 	return NewPlaceView(p), nil
 }
 
-func SetPlaceStatus(ctx context.Context, id string, status models.Status) error {
-	if !status.IsValid() {
-		return NewApiErr(AetBadInput, "invalid status: %s", status)
+func SetPlaceStatus(ctx context.Context, in SetPlaceStatusInput) error {
+	if !in.Status.IsValid() {
+		return NewApiErr(AetBadInput, "invalid status: %s", in.Status)
 	}
-	res, err := db.Places().UpdateByID(ctx, id, bson.M{"$set": bson.M{
-		"status":     status,
+	res, err := db.Places().UpdateByID(ctx, in.PlaceID, bson.M{"$set": bson.M{
+		"status":     in.Status,
+		"admin_id":   in.AdminID,
 		"updated_at": time.Now().UTC(),
 	}})
 	if err != nil {
 		return err
 	}
 	if res.MatchedCount == 0 {
-		return NewApiErrS(404, AetNotFound, "place not found: %s", id)
+		return NewApiErrS(404, AetNotFound, "place not found: %s", in.PlaceID)
 	}
 	return nil
 }

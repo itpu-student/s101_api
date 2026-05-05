@@ -6,7 +6,9 @@ import "github.com/itpu-student/s101_api/models"
 // with c.ShouldBindJSON, services validate.
 
 type SetPlaceStatusInput struct {
-	Status models.Status `json:"status" swaggertype:"string" enums:"pending,approved,rejected,suspended"`
+	PlaceID string        `json:"place_id"`
+	Status  models.Status `json:"status" swaggertype:"string" enums:"pending,approved,rejected,suspended"`
+	AdminID string        `json:"-"`
 }
 
 type AdminEditPlaceInput struct {
@@ -102,9 +104,12 @@ type EditReportInput struct {
 type ReviewReportInput struct {
 	Status             models.ReportStatus `json:"status"`
 	AdminResponse      *string             `json:"admin_response"`
-	DeleteTargetReview bool                `json:"delete_target_review"`
-	BlockReportedUser  bool                `json:"block_reported_user"`
-	SuspendPlace       bool                `json:"suspend_place"`
+	// DeleteTargetReview bool                `json:"delete_target_review"`
+	// BlockReportedUser  bool                `json:"block_reported_user"`
+	// SuspendPlace       bool                `json:"suspend_place"`
+
+	ReportID string `json:"-"`
+	AdminID  string `json:"-"`
 }
 
 type ReportFilter struct {

@@ -216,8 +216,8 @@ func ListReportsAdmin(ctx context.Context, f ReportFilter, paging utils.Paging) 
 	return NewPage(buildReportViews(ctx, items, true), paging, total), nil
 }
 
-func ReviewReport(ctx context.Context, reportID, adminID string, in ReviewReportInput) (*ReportView, error) {
-	if _, ok := models.ParseReportStatus(string(in.Status)); !ok {
+func ReviewReport(ctx context.Context, in ReviewReportInput) (*ReportView, error) {
+	if !in.Status.IsValid() {
 		return nil, NewApiErr(AetBadInput, "invalid status: %s", in.Status)
 	}
 	if in.AdminResponse != nil && len(*in.AdminResponse) > config.Cfg.TextInputLimit {
@@ -225,64 +225,64 @@ func ReviewReport(ctx context.Context, reportID, adminID string, in ReviewReport
 	}
 
 	var r models.Report
-	if err := db.Reports().FindOne(ctx, bson.M{"_id": reportID}).Decode(&r); err != nil {
+	if err := db.Reports().FindOne(ctx, bson.M{"_id": in.ReportID}).Decode(&r); err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, NewApiErrS(404, AetNotFound, "report not found: %s", reportID)
+			return nil, NewApiErrS(404, AetNotFound, "report not found: %s", in.ReportID)
 		}
 		return nil, err
 	}
 
-	if in.DeleteTargetReview && r.TargetType != models.ReportTargetReview {
-		return nil, NewApiErr(AetBadInput, "delete_target_review only valid when target_type is 'review'")
-	}
-	if in.BlockReportedUser && r.ReportedUserID == nil {
-		return nil, NewApiErr(AetBadInput, "block_reported_user requires a known reported_user_id")
-	}
-	if in.SuspendPlace && r.TargetType != models.ReportTargetPlace {
-		return nil, NewApiErr(AetBadInput, "suspend_place only valid when target_type is 'place'")
-	}
+	// if in.DeleteTargetReview && r.TargetType != models.ReportTargetReview {
+	// 	return nil, NewApiErr(AetBadInput, "delete_target_review only valid when target_type is 'review'")
+	// }
+	// if in.BlockReportedUser && r.ReportedUserID == nil {
+	// 	return nil, NewApiErr(AetBadInput, "block_reported_user requires a known reported_user_id")
+	// }
+	// if in.SuspendPlace && r.TargetType != models.ReportTargetPlace {
+	// 	return nil, NewApiErr(AetBadInput, "suspend_place only valid when target_type is 'place'")
+	// }
 
-	if in.DeleteTargetReview {
-		if err := AdminDeleteReview(ctx, r.TargetID); err != nil {
-			var ae *ApiErr
-			if !(errors.As(err, &ae) && ae.Typ == AetNotFound) {
-				return nil, err
-			}
-		}
-	}
-	if in.BlockReportedUser {
-		_, err := db.Users().UpdateByID(ctx, *r.ReportedUserID, bson.M{"$set": bson.M{
-			"blocked":    true,
-			"updated_at": time.Now().UTC(),
-		}})
-		if err != nil {
-			return nil, err
-		}
-	}
-	if in.SuspendPlace {
-		_, err := db.Places().UpdateByID(ctx, r.TargetID, bson.M{"$set": bson.M{
-			"status":     models.StatusSuspended,
-			"updated_at": time.Now().UTC(),
-		}})
-		if err != nil {
-			return nil, err
-		}
-	}
+	// if in.DeleteTargetReview {
+	// 	if err := AdminDeleteReview(ctx, r.TargetID); err != nil {
+	// 		var ae *ApiErr
+	// 		if !(errors.As(err, &ae) && ae.Typ == AetNotFound) {
+	// 			return nil, err
+	// 		}
+	// 	}
+	// }
+	// if in.BlockReportedUser {
+	// 	_, err := db.Users().UpdateByID(ctx, *r.ReportedUserID, bson.M{"$set": bson.M{
+	// 		"blocked":    true,
+	// 		"updated_at": time.Now().UTC(),
+	// 	}})
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+	// }
+	// if in.SuspendPlace {
+	// 	_, err := db.Places().UpdateByID(ctx, r.TargetID, bson.M{"$set": bson.M{
+	// 		"status":     models.StatusSuspended,
+	// 		"updated_at": time.Now().UTC(),
+	// 	}})
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+	// }
 
 	now := time.Now().UTC()
 	update := bson.M{
 		"status":      in.Status,
-		"admin_id":    adminID,
+		"admin_id":    in.AdminID,
 		"reviewed_at": now,
 		"updated_at":  now,
 	}
 	if in.AdminResponse != nil {
 		update["admin_response"] = *in.AdminResponse
 	}
-	if _, err := db.Reports().UpdateByID(ctx, reportID, bson.M{"$set": update}); err != nil {
+	if _, err := db.Reports().UpdateByID(ctx, in.ReportID, bson.M{"$set": update}); err != nil {
 		return nil, err
 	}
-	if err := db.Reports().FindOne(ctx, bson.M{"_id": reportID}).Decode(&r); err != nil {
+	if err := db.Reports().FindOne(ctx, bson.M{"_id": in.ReportID}).Decode(&r); err != nil {
 		return nil, err
 	}
 

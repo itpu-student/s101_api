@@ -182,7 +182,10 @@ func AdminReviewReport(c *gin.Context) {
 	if bindHasErr(c, &in) {
 		return
 	}
-	r, err := services.ReviewReport(c.Request.Context(), c.Param("id"), a.ID, in)
+
+	in.AdminID = a.ID
+	in.ReportID = c.Param("id")
+	r, err := services.ReviewReport(c.Request.Context(), in)
 	if hasErr(c, err) {
 		return
 	}
