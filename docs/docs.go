@@ -3288,17 +3288,8 @@ const docTemplate = `{
                 "admin_response": {
                     "type": "string"
                 },
-                "block_reported_user": {
-                    "type": "boolean"
-                },
-                "delete_target_review": {
-                    "type": "boolean"
-                },
                 "status": {
                     "$ref": "#/definitions/models.ReportStatus"
-                },
-                "suspend_place": {
-                    "type": "boolean"
                 }
             }
         },
@@ -3352,6 +3343,9 @@ const docTemplate = `{
         "services.SetPlaceStatusInput": {
             "type": "object",
             "properties": {
+                "place_id": {
+                    "type": "string"
+                },
                 "status": {
                     "type": "string",
                     "enum": [
