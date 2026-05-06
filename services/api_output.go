@@ -104,14 +104,19 @@ func NewAdminUserView(u models.User) *AdminUserView {
 
 type PlaceView struct {
 	models.Place
-	IsOpen        *bool             `json:"is_open"`
+	IsOpen        *bool            `json:"is_open"`
+	IsClaimed     bool             `json:"is_claimed"`
 	CategoryName  *models.I18nText `json:"category_name,omitempty"`
 	CreatedByUser *models.UserMini `json:"created_by_user,omitempty"`
 	ClaimedByUser *models.UserMini `json:"claimed_by_user,omitempty"`
 }
 
 func NewPlaceView(p models.Place) *PlaceView {
-	return &PlaceView{Place: p, IsOpen: utils.IsOpen(p.WeeklyHours, time.Now())}
+	return &PlaceView{
+		Place:     p,
+		IsClaimed: p.ClaimedBy != nil,
+		IsOpen:    utils.IsOpen(p.WeeklyHours, time.Now()),
+	}
 }
 
 // ReviewView wraps a Review with the author's UserMini and place for list endpoints.

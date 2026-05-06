@@ -3112,6 +3112,9 @@ const docTemplate = `{
                         "type": "string"
                     }
                 },
+                "is_claimed": {
+                    "type": "boolean"
+                },
                 "is_open": {
                     "type": "boolean"
                 },
