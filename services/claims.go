@@ -31,7 +31,7 @@ func ListClaimsAdmin(ctx context.Context, f ClaimFilter, paging utils.Paging) (*
 	total, _ := db.ClaimRequests().CountDocuments(ctx, filter)
 	items := make([]ClaimView, 0, len(raw))
 	for _, cr := range raw {
-		items = append(items, ClaimView{ClaimRequest: cr, User: lookupUserMini(ctx, &cr.UserID)})
+		items = append(items, ClaimView{ClaimRequest: cr, User: lookupUserMini(ctx, &cr.UserID), Place: lookupPlaceMini(ctx, cr.PlaceID)})
 	}
 	return NewPage(items, paging, total), nil
 }

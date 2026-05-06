@@ -2689,6 +2689,9 @@ const docTemplate = `{
                 "phone": {
                     "type": "string"
                 },
+                "place": {
+                    "$ref": "#/definitions/models.PlaceMini"
+                },
                 "place_id": {
                     "type": "string"
                 },

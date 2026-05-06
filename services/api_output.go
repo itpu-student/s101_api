@@ -129,7 +129,8 @@ type ReviewView struct {
 // ClaimView wraps a ClaimRequest with the claimant's UserMini for admin endpoints.
 type ClaimView struct {
 	models.ClaimRequest
-	User *models.UserMini `json:"user,omitempty"`
+	User  *models.UserMini  `json:"user,omitempty"`
+	Place *models.PlaceMini `json:"place,omitempty"`
 }
 
 // ReportTarget is a uniform preview card for whatever a report points at — a
