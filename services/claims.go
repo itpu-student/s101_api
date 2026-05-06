@@ -7,9 +7,9 @@ import (
 	"github.com/itpu-student/s101_api/db"
 	"github.com/itpu-student/s101_api/models"
 	"github.com/itpu-student/s101_api/utils"
+	. "github.com/itpu-student/s101_api/utils/api_err"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	. "github.com/itpu-student/s101_api/utils/api_err"
 )
 
 func ListClaimsAdmin(ctx context.Context, f ClaimFilter, paging utils.Paging) (*Page[ClaimView], error) {
@@ -40,7 +40,9 @@ func ListClaimsAdmin(ctx context.Context, f ClaimFilter, paging utils.Paging) (*
 // to the claim's user. Rejects the approval if the place is already claimed
 // by someone else.
 func ReviewClaim(ctx context.Context, claimID string, status models.Status, reviewerID string) error {
+	if !status.IsValid() {
 		return NewApiErr(AetBadInput, "invalid status: %s", status)
+	}
 
 	var cr models.ClaimRequest
 	err := db.ClaimRequests().FindOne(ctx, bson.M{"_id": claimID}).Decode(&cr)
