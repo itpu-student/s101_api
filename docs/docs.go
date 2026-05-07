@@ -3085,9 +3085,6 @@ const docTemplate = `{
                 "category_id": {
                     "type": "string"
                 },
-                "category_name": {
-                    "$ref": "#/definitions/models.I18nText"
-                },
                 "claimed_by": {
                     "type": "string"
                 },
@@ -3101,7 +3098,12 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "created_by_user": {
-                    "$ref": "#/definitions/models.UserMini"
+                    "description": "CategoryName  *models.I18nText ` + "`" + `json:\"category_name,omitempty\"` + "`" + `",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.UserMini"
+                        }
+                    ]
                 },
                 "description": {
                     "$ref": "#/definitions/models.I18nText"

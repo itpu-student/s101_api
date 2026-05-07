@@ -630,8 +630,6 @@ definitions:
         type: number
       category_id:
         type: string
-      category_name:
-        $ref: '#/definitions/models.I18nText'
       claimed_by:
         type: string
       claimed_by_user:
@@ -641,7 +639,9 @@ definitions:
       created_by:
         type: string
       created_by_user:
-        $ref: '#/definitions/models.UserMini'
+        allOf:
+        - $ref: '#/definitions/models.UserMini'
+        description: CategoryName  *models.I18nText `json:"category_name,omitempty"`
       description:
         $ref: '#/definitions/models.I18nText'
       id:
