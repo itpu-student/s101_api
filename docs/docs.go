@@ -2543,6 +2543,9 @@ const docTemplate = `{
                 "phone": {
                     "type": "string"
                 },
+                "slug": {
+                    "type": "string"
+                },
                 "weekly_hours": {
                     "$ref": "#/definitions/models.WeeklyHours"
                 }
@@ -2830,6 +2833,12 @@ const docTemplate = `{
         "services.EditPlaceInput": {
             "type": "object",
             "properties": {
+                "address": {
+                    "$ref": "#/definitions/models.I18nText"
+                },
+                "category_id": {
+                    "type": "string"
+                },
                 "description": {
                     "$ref": "#/definitions/models.I18nText"
                 },
@@ -2839,10 +2848,22 @@ const docTemplate = `{
                         "type": "string"
                     }
                 },
+                "lat": {
+                    "type": "number"
+                },
                 "logo_key": {
                     "type": "string"
                 },
+                "lon": {
+                    "type": "number"
+                },
+                "name": {
+                    "type": "string"
+                },
                 "phone": {
+                    "type": "string"
+                },
+                "slug": {
                     "type": "string"
                 },
                 "weekly_hours": {

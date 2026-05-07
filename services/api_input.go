@@ -13,6 +13,7 @@ type SetPlaceStatusInput struct {
 
 type AdminEditPlaceInput struct {
 	Name        *string             `json:"name"`
+	Slug        *string             `json:"slug"`
 	CategoryID  *string             `json:"category_id"`
 	Address     *models.I18nText    `json:"address"`
 	Phone       *string             `json:"phone"`
@@ -82,11 +83,17 @@ type CreatePlaceInput struct {
 }
 
 type EditPlaceInput struct {
+	Name        *string             `json:"name"`
+	Slug        *string             `json:"slug"`
+	CategoryID  *string             `json:"category_id"`
+	Address     *models.I18nText    `json:"address"`
 	Phone       *string             `json:"phone"`
 	Description *models.I18nText    `json:"description"`
-	WeeklyHours *models.WeeklyHours `json:"weekly_hours"`
+	Lat         *float64            `json:"lat"`
+	Lon         *float64            `json:"lon"`
 	LogoKey     *string             `json:"logo_key"`
 	Images      *[]string           `json:"images"`
+	WeeklyHours *models.WeeklyHours `json:"weekly_hours"`
 }
 
 type SubmitReportInput struct {

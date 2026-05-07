@@ -200,20 +200,57 @@ func EditPlace(ctx context.Context, claimantID string, id string, in EditPlaceIn
 	}
 
 	update := bson.M{"updated_at": time.Now().UTC()}
+	if in.Name != nil {
+		update["name"] = *in.Name
+	}
+	if in.Slug != nil {
+		taken, err := isSlugTaken(ctx, *in.Slug, id)
+		if err != nil {
+			return nil, err
+		}
+		if taken {
+			return nil, NewApiErr(AetBadInput, "slug already in use: %s", *in.Slug)
+		}
+		update["slug"] = *in.Slug
+	}
+	if in.CategoryID != nil {
+		if _, err := uuid.Parse(*in.CategoryID); err != nil {
+			return nil, NewApiErr(AetBadInput, "category_id must be a UUID")
+		}
+		if err := db.Categories().FindOne(ctx, bson.M{"_id": *in.CategoryID}).Err(); err != nil {
+			if errors.Is(err, mongo.ErrNoDocuments) {
+				return nil, NewApiErr(AetBadInput, "category not found: %s", *in.CategoryID)
+			}
+			return nil, err
+		}
+		update["category_id"] = *in.CategoryID
+	}
+	if in.Address != nil {
+		update["address"] = *in.Address
+	}
 	if in.Phone != nil {
 		update["phone"] = *in.Phone
 	}
 	if in.Description != nil {
 		update["description"] = *in.Description
 	}
-	if in.WeeklyHours != nil {
-		update["weekly_hours"] = *in.WeeklyHours
+	if in.Lat != nil {
+		update["lat"] = *in.Lat
+	}
+	if in.Lon != nil {
+		update["lon"] = *in.Lon
+	}
+	if in.Lat != nil && in.Lon != nil {
+		update["location"] = models.NewGeoPoint(*in.Lat, *in.Lon)
 	}
 	if in.LogoKey != nil {
 		update["logo_key"] = *in.LogoKey
 	}
 	if in.Images != nil {
 		update["images"] = *in.Images
+	}
+	if in.WeeklyHours != nil {
+		update["weekly_hours"] = *in.WeeklyHours
 	}
 	_, err = db.Places().UpdateByID(ctx, id, bson.M{"$set": update})
 	if err != nil {
@@ -287,6 +324,16 @@ func AdminEditPlace(ctx context.Context, id string, in AdminEditPlaceInput) erro
 	}
 	if in.WeeklyHours != nil {
 		update["weekly_hours"] = *in.WeeklyHours
+	}
+	if in.Slug != nil {
+		taken, err := isSlugTaken(ctx, *in.Slug, id)
+		if err != nil {
+			return err
+		}
+		if taken {
+			return NewApiErr(AetBadInput, "slug already in use: %s", *in.Slug)
+		}
+		update["slug"] = *in.Slug
 	}
 	res, err := db.Places().UpdateByID(ctx, id, bson.M{"$set": update})
 	if err != nil {
@@ -373,6 +420,14 @@ func GenerateUniqueSlug(ctx context.Context, name string) (string, error) {
 		candidate = fmt.Sprintf("%s-%d", base, i)
 	}
 	return "", errors.New("could not generate unique slug")
+}
+
+func isSlugTaken(ctx context.Context, slug, excludeID string) (bool, error) {
+	err := db.Places().FindOne(ctx, bson.M{"slug": slug, "_id": bson.M{"$ne": excludeID}}).Err()
+	if errors.Is(err, mongo.ErrNoDocuments) {
+		return false, nil
+	}
+	return err == nil, err
 }
 
 func CoalesceStrings(s []string) []string {

@@ -275,6 +275,8 @@ definitions:
         type: string
       phone:
         type: string
+      slug:
+        type: string
       weekly_hours:
         $ref: '#/definitions/models.WeeklyHours'
     type: object
@@ -463,15 +465,27 @@ definitions:
     type: object
   services.EditPlaceInput:
     properties:
+      address:
+        $ref: '#/definitions/models.I18nText'
+      category_id:
+        type: string
       description:
         $ref: '#/definitions/models.I18nText'
       images:
         items:
           type: string
         type: array
+      lat:
+        type: number
       logo_key:
         type: string
+      lon:
+        type: number
+      name:
+        type: string
       phone:
+        type: string
+      slug:
         type: string
       weekly_hours:
         $ref: '#/definitions/models.WeeklyHours'
