@@ -364,7 +364,7 @@ func DeletePlaceCascade(ctx context.Context, id string) error {
 }
 func ListMyPlaces(ctx context.Context, userID string, paging utils.Paging) (*Page[PlaceView], error) {
 	filter := bson.M{"$or": bson.A{
-		bson.M{"created_by": userID},
+		// bson.M{"created_by": userID},
 		bson.M{"claimed_by": userID},
 	}}
 	cur, err := db.Places().Find(ctx, filter,
