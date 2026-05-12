@@ -44,6 +44,9 @@ func Register(r *gin.Engine) {
 	api.POST("/places/create", middleware.RequireUser(), handlers.CreatePlace)
 	api.PUT("/places/:id", middleware.RequireUser(), handlers.EditPlace)
 
+	// ---- AI summary ----
+	api.GET("/places/:id/ai-summary", handlers.GetAISummary)
+
 	// ---- reviews ----
 	api.GET("/places/:id/reviews", handlers.ListPlaceReviews)
 	api.POST("/places/:id/reviews", middleware.RequireUser(), handlers.CreateReview)

@@ -30,6 +30,7 @@ type Config struct {
 	BootstrapAdminName     string
 
 	TextInputLimit int
+	GeminiAPIKey   string
 }
 
 var Cfg *Config
@@ -53,6 +54,8 @@ func Load() *Config {
 		BootstrapAdminName:     getEnv("BOOTSTRAP_ADMIN_NAME", "Admin"),
 
 		TextInputLimit: getEnvInt("TEXT_INPUT_LIMIT", 1000),
+
+		GeminiAPIKey:   getEnv("GEMINI_API_KEY", ""),
 	}
 
 	if Cfg.JWTSecret == "dev-secret-change-me" && Cfg.Env == "production" {

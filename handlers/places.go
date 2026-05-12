@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"encoding/json"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -142,6 +144,37 @@ func MyPlaces(c *gin.Context) {
 		return
 	}
 	utils.OK(c, page)
+}
+
+// @Summary      Get AI-generated summary of reviews for a place
+// @Tags         places
+// @Produce      json
+// @Param        id path string true "Place UUID or slug"
+// @Success      200 {object} services.AISummary
+// @Failure      404 {object} api_err.ApiErr
+// @Router       /places/{id}/ai-summary [get]
+func GetAISummary(c *gin.Context) {
+	p, err := services.FindPlaceByID(c.Request.Context(), c.Param("id"))
+	if hasErr(c, err) {
+		return
+	}
+	summary, err := services.GetOrRefreshSummary(c.Request.Context(), p.ID)
+	if hasErr(c, err) {
+		return
+	}
+
+	b, _ := json.MarshalIndent(summary, "", " ")
+	fmt.Printf("AI Summary for place %s:\n%s", p.ID, string(b))
+
+	if summary == nil {
+		utils.OK(c, services.AISummary{
+			En: "Blank Response From AI",
+			Uz: "Bo'sh AI javobi",
+		})
+		return
+	}
+
+	utils.OK(c, summary)
 }
 
 // ---- helpers ----

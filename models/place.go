@@ -30,27 +30,29 @@ type HourRange struct {
 }
 
 type Place struct {
-	ID           string      `bson:"_id" json:"id"`
-	Slug         string      `bson:"slug" json:"slug"`
-	ATCID        string      `bson:"atc_id" json:"atc_id"`
-	Name         string      `bson:"name" json:"name"`
-	CategoryID   string      `bson:"category_id" json:"category_id"`
-	Address      I18nText    `bson:"address" json:"address"`
-	Phone        string      `bson:"phone" json:"phone"`
-	Description  I18nText    `bson:"description" json:"description"`
-	Lat          float64     `bson:"lat" json:"lat"`
-	Lon          float64     `bson:"lon" json:"lon"`
-	Location     GeoPoint    `bson:"location" json:"location"`
-	LogoKey      string      `bson:"logo_key" json:"logo_key"`
-	Images       []string    `bson:"images" json:"images"`
-	WeeklyHours  WeeklyHours `bson:"weekly_hours" json:"weekly_hours"`
-	Status       Status      `bson:"status" json:"status" swaggertype:"string" enums:"pending,approved,rejected,suspended"`
-	AvgRating    float64     `bson:"avg_rating" json:"avg_rating"`
-	ReviewCount  int         `bson:"review_count" json:"review_count"`
-	CreatedBy    *string     `bson:"created_by" json:"created_by"`
-	ClaimedBy    *string     `bson:"claimed_by,omitempty" json:"claimed_by,omitempty"`
-	CreatedAt    time.Time   `bson:"created_at" json:"created_at"`
-	UpdatedAt    time.Time   `bson:"updated_at" json:"updated_at"`
+	ID                 string      `bson:"_id" json:"id"`
+	Slug               string      `bson:"slug" json:"slug"`
+	ATCID              string      `bson:"atc_id" json:"atc_id"`
+	Name               string      `bson:"name" json:"name"`
+	CategoryID         string      `bson:"category_id" json:"category_id"`
+	Address            I18nText    `bson:"address" json:"address"`
+	Phone              string      `bson:"phone" json:"phone"`
+	Description        I18nText    `bson:"description" json:"description"`
+	Lat                float64     `bson:"lat" json:"lat"`
+	Lon                float64     `bson:"lon" json:"lon"`
+	Location           GeoPoint    `bson:"location" json:"location"`
+	LogoKey            string      `bson:"logo_key" json:"logo_key"`
+	Images             []string    `bson:"images" json:"images"`
+	WeeklyHours        WeeklyHours `bson:"weekly_hours" json:"weekly_hours"`
+	Status             Status      `bson:"status" json:"status" swaggertype:"string" enums:"pending,approved,rejected,suspended"`
+	AvgRating          float64     `bson:"avg_rating" json:"avg_rating"`
+	ReviewCount        int         `bson:"review_count" json:"review_count"`
+	CreatedBy          *string     `bson:"created_by" json:"created_by"`
+	ClaimedBy          *string     `bson:"claimed_by,omitempty" json:"claimed_by,omitempty"`
+	CreatedAt          time.Time   `bson:"created_at" json:"created_at"`
+	UpdatedAt          time.Time   `bson:"updated_at" json:"updated_at"`
+	AISummary          I18nText    `bson:"ai_summary,omitempty" json:"ai_summary,omitempty"`
+	AISummaryUpdatedAt *time.Time  `bson:"ai_summary_updated_at,omitempty" json:"ai_summary_updated_at,omitempty"`
 }
 
 type PlaceMini struct {
@@ -97,4 +99,3 @@ func (wh WeeklyHours) IsBlank() bool {
 	}
 	return true
 }
-
