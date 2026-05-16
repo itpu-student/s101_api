@@ -46,9 +46,23 @@ func buildReviewView(ctx context.Context, r models.Review) ReviewView {
 }
 
 func buildReviewViews(ctx context.Context, rs []models.Review) []ReviewView {
+	userIDs := make([]string, 0, len(rs))
+	placeIDs := make([]string, 0, len(rs))
+	for _, r := range rs {
+		if r.UserID != nil {
+			userIDs = append(userIDs, *r.UserID)
+		}
+		placeIDs = append(placeIDs, r.PlaceID)
+	}
+	userMap := fetchUserMiniMap(ctx, userIDs)
+	placeMap := fetchPlaceMiniMap(ctx, placeIDs)
 	out := make([]ReviewView, 0, len(rs))
 	for _, r := range rs {
-		out = append(out, buildReviewView(ctx, r))
+		rv := ReviewView{Review: r, Place: placeMap[r.PlaceID]}
+		if r.UserID != nil {
+			rv.User = userMap[*r.UserID]
+		}
+		out = append(out, rv)
 	}
 	return out
 }

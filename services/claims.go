@@ -29,9 +29,17 @@ func ListClaimsAdmin(ctx context.Context, f ClaimFilter, paging utils.Paging) (*
 		return nil, err
 	}
 	total, _ := db.ClaimRequests().CountDocuments(ctx, filter)
+	userIDs := make([]string, 0, len(raw))
+	placeIDs := make([]string, 0, len(raw))
+	for _, cr := range raw {
+		userIDs = append(userIDs, cr.UserID)
+		placeIDs = append(placeIDs, cr.PlaceID)
+	}
+	userMap := fetchUserMiniMap(ctx, userIDs)
+	placeMap := fetchPlaceMiniMap(ctx, placeIDs)
 	items := make([]ClaimView, 0, len(raw))
 	for _, cr := range raw {
-		items = append(items, ClaimView{ClaimRequest: cr, User: lookupUserMini(ctx, &cr.UserID), Place: lookupPlaceMini(ctx, cr.PlaceID)})
+		items = append(items, ClaimView{ClaimRequest: cr, User: userMap[cr.UserID], Place: placeMap[cr.PlaceID]})
 	}
 	return NewPage(items, paging, total), nil
 }

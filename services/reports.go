@@ -350,9 +350,93 @@ func buildReportView(ctx context.Context, r *models.Report, includeUsers bool) *
 }
 
 func buildReportViews(ctx context.Context, rs []models.Report, includeUsers bool) []ReportView {
+	placeTargetIDs := make([]string, 0, len(rs))
+	reviewTargetIDs := make([]string, 0, len(rs))
+	for _, r := range rs {
+		switch r.TargetType {
+		case models.ReportTargetPlace:
+			placeTargetIDs = append(placeTargetIDs, r.TargetID)
+		case models.ReportTargetReview:
+			reviewTargetIDs = append(reviewTargetIDs, r.TargetID)
+		}
+	}
+
+	reviewMap := fetchReviewMap(ctx, reviewTargetIDs)
+
+	allPlaceIDs := make([]string, 0, len(placeTargetIDs)+len(reviewMap))
+	allPlaceIDs = append(allPlaceIDs, placeTargetIDs...)
+	for _, rv := range reviewMap {
+		allPlaceIDs = append(allPlaceIDs, rv.PlaceID)
+	}
+	placeMap := fetchPlaceMap(ctx, allPlaceIDs)
+
+	var userMap map[string]*models.UserMini
+	var adminMap map[string]*models.AdminMini
+	if includeUsers {
+		userIDs := make([]string, 0, len(rs)*2)
+		adminIDs := make([]string, 0, len(rs))
+		for _, r := range rs {
+			userIDs = append(userIDs, r.UserID)
+			if r.ReportedUserID != nil {
+				userIDs = append(userIDs, *r.ReportedUserID)
+			}
+			if r.AdminID != nil {
+				adminIDs = append(adminIDs, *r.AdminID)
+			}
+		}
+		userMap = fetchUserMiniMap(ctx, userIDs)
+		adminMap = fetchAdminMiniMap(ctx, adminIDs)
+	}
+
 	out := make([]ReportView, 0, len(rs))
-	for i := range rs {
-		out = append(out, *buildReportView(ctx, &rs[i], includeUsers))
+	for _, r := range rs {
+		v := ReportView{Report: r}
+
+		switch r.TargetType {
+		case models.ReportTargetPlace:
+			if p, ok := placeMap[r.TargetID]; ok {
+				var avatar *string
+				if p.LogoKey != "" {
+					lk := p.LogoKey
+					avatar = &lk
+				}
+				v.Target = &ReportTarget{
+					ID:        p.ID,
+					Type:      models.ReportTargetPlace,
+					Name:      p.Name,
+					AvatarKey: avatar,
+					Content:   pickI18n(p.Description),
+				}
+			}
+		case models.ReportTargetReview:
+			if rv, ok := reviewMap[r.TargetID]; ok {
+				t := &ReportTarget{
+					ID:      rv.ID,
+					Type:    models.ReportTargetReview,
+					Content: rv.Text,
+				}
+				if p, ok := placeMap[rv.PlaceID]; ok {
+					t.Name = p.Name
+					if p.LogoKey != "" {
+						lk := p.LogoKey
+						t.AvatarKey = &lk
+					}
+				}
+				v.Target = t
+			}
+		}
+
+		if includeUsers {
+			v.ReporterUser = userMap[r.UserID]
+			if r.ReportedUserID != nil {
+				v.ReportedUser = userMap[*r.ReportedUserID]
+			}
+			if r.AdminID != nil {
+				v.Admin = adminMap[*r.AdminID]
+			}
+		}
+
+		out = append(out, v)
 	}
 	return out
 }

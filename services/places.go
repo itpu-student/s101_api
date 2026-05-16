@@ -34,9 +34,26 @@ func ListPlacesAdmin(ctx context.Context, f PlaceFilter, paging utils.Paging) (*
 		return nil, err
 	}
 	total, _ := db.Places().CountDocuments(ctx, filter)
+	userIDs := make([]string, 0, len(raw)*2)
+	for _, p := range raw {
+		if p.CreatedBy != nil {
+			userIDs = append(userIDs, *p.CreatedBy)
+		}
+		if p.ClaimedBy != nil {
+			userIDs = append(userIDs, *p.ClaimedBy)
+		}
+	}
+	userMap := fetchUserMiniMap(ctx, userIDs)
 	items := make([]PlaceView, 0, len(raw))
 	for _, p := range raw {
-		items = append(items, *buildAdminPlaceView(ctx, p))
+		v := NewPlaceView(p)
+		if p.CreatedBy != nil {
+			v.CreatedByUser = userMap[*p.CreatedBy]
+		}
+		if p.ClaimedBy != nil {
+			v.ClaimedByUser = userMap[*p.ClaimedBy]
+		}
+		items = append(items, *v)
 	}
 	return NewPage(items, paging, total), nil
 }
