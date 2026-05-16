@@ -64,8 +64,8 @@ func GetOrRefreshSummary(ctx context.Context, placeID string) (*AISummary, error
 
 	now := time.Now().UTC()
 	_, _ = db.Places().UpdateByID(ctx, placeID, bson.M{"$set": bson.M{
-		"ai_summary_en":         summary.En,
-		"ai_summary_uz":         summary.Uz,
+		"ai_summary.en":         summary.En,
+		"ai_summary.uz":         summary.Uz,
 		"ai_summary_updated_at": now,
 	}})
 
