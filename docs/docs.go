@@ -1543,6 +1543,40 @@ const docTemplate = `{
                 }
             }
         },
+        "/places/{id}/ai-summary": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "places"
+                ],
+                "summary": "Get AI-generated summary of reviews for a place",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Place UUID or slug",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/services.AISummary"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api_err.ApiErr"
+                        }
+                    }
+                }
+            }
+        },
         "/places/{id}/reviews": {
             "get": {
                 "produces": [
@@ -2510,6 +2544,17 @@ const docTemplate = `{
                 }
             }
         },
+        "services.AISummary": {
+            "type": "object",
+            "properties": {
+                "en": {
+                    "type": "string"
+                },
+                "uz": {
+                    "type": "string"
+                }
+            }
+        },
         "services.AdminEditPlaceInput": {
             "type": "object",
             "properties": {
@@ -3096,6 +3141,12 @@ const docTemplate = `{
             "properties": {
                 "address": {
                     "$ref": "#/definitions/models.I18nText"
+                },
+                "ai_summary": {
+                    "$ref": "#/definitions/models.I18nText"
+                },
+                "ai_summary_updated_at": {
+                    "type": "string"
                 },
                 "atc_id": {
                     "type": "string"

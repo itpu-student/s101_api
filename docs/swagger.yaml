@@ -253,6 +253,13 @@ definitions:
           $ref: '#/definitions/models.HourRange'
         type: array
     type: object
+  services.AISummary:
+    properties:
+      en:
+        type: string
+      uz:
+        type: string
+    type: object
   services.AdminEditPlaceInput:
     properties:
       address:
@@ -638,6 +645,10 @@ definitions:
     properties:
       address:
         $ref: '#/definitions/models.I18nText'
+      ai_summary:
+        $ref: '#/definitions/models.I18nText'
+      ai_summary_updated_at:
+        type: string
       atc_id:
         type: string
       avg_rating:
@@ -1775,6 +1786,28 @@ paths:
       security:
       - BearerAuth: []
       summary: Edit own place (claimant only)
+      tags:
+      - places
+  /places/{id}/ai-summary:
+    get:
+      parameters:
+      - description: Place UUID or slug
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/services.AISummary'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api_err.ApiErr'
+      summary: Get AI-generated summary of reviews for a place
       tags:
       - places
   /places/{id}/reviews:
