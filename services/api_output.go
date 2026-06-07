@@ -106,7 +106,7 @@ type PlaceView struct {
 	models.Place
 	IsOpen        *bool            `json:"is_open"`
 	IsClaimed     bool             `json:"is_claimed"`
-	// CategoryName  *models.I18nText `json:"category_name,omitempty"`
+	SavedCount    int64            `json:"saved_count"`
 	CreatedByUser *models.UserMini `json:"created_by_user,omitempty"`
 	ClaimedByUser *models.UserMini `json:"claimed_by_user,omitempty"`
 }

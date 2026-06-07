@@ -149,7 +149,9 @@ func GetPlaceView(ctx context.Context, idOrSlug string, viewerID *string, viewer
 			return nil, NewApiErrS(404, AetNotFound, "place not found: %s", idOrSlug)
 		}
 	}
-	return NewPlaceView(*p), nil
+	v := NewPlaceView(*p)
+	v.SavedCount, _ = db.Bookmarks().CountDocuments(ctx, bson.M{"place_id": p.ID})
+	return v, nil
 }
 
 func CreatePlace(ctx context.Context, creatorID string, in CreatePlaceInput) (*models.Place, error) {
