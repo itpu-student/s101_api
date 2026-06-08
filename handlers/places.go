@@ -18,9 +18,10 @@ import (
 // @Tags         places
 // @Produce      json
 // @Param        query       query string false "Search query"
-// @Param        sort        query string false "Sort: top|recent|nearest"
+// @Param        sort        query string false "Sort: top|recent|nearest|trending"
 // @Param        category_id query string false "Category UUID"
 // @Param        near        query string false "lat,lon for nearest sort"
+// @Param        open_now    query bool   false "Only return places open right now"
 // @Param        page        query int    false "Page number"
 // @Param        limit       query int    false "Page size"
 // @Success      200 {object} services.Page[services.PlaceView]
@@ -44,6 +45,11 @@ func ListPlaces(c *gin.Context) {
 	} else if sort == "nearest" {
 		hasErr(c, NewApiErr(AetBadInput, "sort=nearest requires near=lat,lon"))
 		return
+	}
+
+	if v := c.Query("open_now"); v == "true" || v == "1" {
+		t := true
+		filter.OpenNow = &t
 	}
 
 	page, err := services.ListPlaces(c.Request.Context(), filter, paging)

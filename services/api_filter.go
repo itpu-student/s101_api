@@ -12,6 +12,7 @@ type PlaceFilter struct {
 	Sort       *string
 	NearLat    *float64
 	NearLon    *float64
+	OpenNow    *bool
 }
 
 type ReviewFilter struct {
