@@ -1339,7 +1339,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Sort: top|recent|nearest",
+                        "description": "Sort: top|recent|nearest (default top)",
                         "name": "sort",
                         "in": "query"
                     },
@@ -1353,6 +1353,18 @@ const docTemplate = `{
                         "type": "string",
                         "description": "lat,lon for nearest sort",
                         "name": "near",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Search radius in meters (required with sort=nearest)",
+                        "name": "near_max_distance",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Only return places open right now",
+                        "name": "open_now",
                         "in": "query"
                     },
                     {
@@ -3170,12 +3182,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "created_by_user": {
-                    "description": "CategoryName  *models.I18nText ` + "`" + `json:\"category_name,omitempty\"` + "`" + `",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/models.UserMini"
-                        }
-                    ]
+                    "$ref": "#/definitions/models.UserMini"
                 },
                 "description": {
                     "$ref": "#/definitions/models.I18nText"
@@ -3214,6 +3221,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "review_count": {
+                    "type": "integer"
+                },
+                "saved_count": {
                     "type": "integer"
                 },
                 "slug": {

@@ -4,9 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/google/uuid"
 	"github.com/itpu-student/s101_api/db"
@@ -14,6 +17,7 @@ import (
 	"github.com/itpu-student/s101_api/utils"
 	. "github.com/itpu-student/s101_api/utils/api_err"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -59,47 +63,59 @@ func ListPlacesAdmin(ctx context.Context, f PlaceFilter, paging utils.Paging) (*
 	return NewPage(items, paging, total), nil
 }
 
-func buildAdminPlaceView(ctx context.Context, p models.Place) *PlaceView {
-	v := NewPlaceView(p)
-	v.CreatedByUser = lookupUserMini(ctx, p.CreatedBy)
-	v.ClaimedByUser = lookupUserMini(ctx, p.ClaimedBy)
-	// var cat models.Category
-	// if err := db.Categories().FindOne(ctx, bson.M{"_id": p.CategoryID}).Decode(&cat); err == nil {
-	// 	v.CategoryName = &cat.Name
-	// }
-	return v
-}
+// earthRadiusMeters is the sphere radius used to convert a metric search radius
+// into radians for $centerSphere.
+const earthRadiusMeters = 6378100.0
 
+// ListPlaces returns approved places for the public catalog, filtered by
+// category / search query and ordered by the requested sort mode.
 func ListPlaces(ctx context.Context, f PlaceFilter, paging utils.Paging) (*Page[PlaceView], error) {
 	filter := bson.M{"status": models.StatusApproved}
-	if f.Status != nil {
-		filter["status"] = *f.Status
-	}
 	if f.CategoryId != "" {
 		filter["category_id"] = f.CategoryId
 	}
+
+	var search bson.M
 	if f.Query != nil {
-		q := strings.TrimSpace(*f.Query)
-		if q != "" {
-			filter["$text"] = bson.M{"$search": q}
+		if q := strings.TrimSpace(*f.Query); q != "" {
+			search = buildSearch(q)
 		}
 	}
 
-	if f.Sort != nil && *f.Sort == "trending" {
-		return listPlacesTrending(ctx, filter, paging)
+	sortMode := SortTop
+	if f.Sort != nil && *f.Sort != "" {
+		sortMode = *f.Sort
 	}
 
 	findOpts := options.Find()
-	if f.NearLat != nil && f.NearLon != nil {
-		filter["location"] = bson.M{
-			"$nearSphere": bson.M{
-				"$geometry": bson.M{"type": "Point", "coordinates": []float64{*f.NearLon, *f.NearLat}},
-			},
+	switch sortMode {
+	case SortNearest:
+		if f.NearLat == nil || f.NearLon == nil {
+			return nil, NewApiErr(AetBadInput, "sort=nearest requires near=lat,lon")
 		}
-	} else if f.Sort != nil && *f.Sort == "recent" {
+		if f.NearMaxDistance == nil {
+			return nil, NewApiErr(AetBadInput, "sort=nearest requires near_max_distance (meters)")
+		}
+		// $geoWithin/$centerSphere is a plain filter (unlike $nearSphere) so it
+		// composes with $text and regex searches in a single query. The radius is
+		// in radians. Distance ordering is applied in listPlacesNearest.
+		filter["location"] = bson.M{"$geoWithin": bson.M{"$centerSphere": bson.A{
+			bson.A{*f.NearLon, *f.NearLat}, float64(*f.NearMaxDistance) / earthRadiusMeters,
+		}}}
+		if search != nil {
+			mergeFilter(filter, search)
+		}
+		return listPlacesNearest(ctx, filter, *f.NearLat, *f.NearLon, f, paging)
+	case SortRecent:
 		findOpts.SetSort(bson.D{{Key: "created_at", Value: -1}})
-	} else {
+	case SortTop:
 		findOpts.SetSort(bson.D{{Key: "avg_rating", Value: -1}, {Key: "review_count", Value: -1}})
+	default:
+		return nil, NewApiErr(AetBadInput, "invalid sort: %s", sortMode)
+	}
+
+	if search != nil {
+		mergeFilter(filter, search)
 	}
 
 	if f.OpenNow != nil && *f.OpenNow {
@@ -115,12 +131,92 @@ func ListPlaces(ctx context.Context, f PlaceFilter, paging utils.Paging) (*Page[
 	if err = cur.All(ctx, &places); err != nil {
 		return nil, err
 	}
-	total, _ := db.Places().CountDocuments(ctx, filter)
+
+	total, err := db.Places().CountDocuments(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+
 	items := make([]PlaceView, 0, len(places))
 	for _, p := range places {
 		items = append(items, *NewPlaceView(p))
 	}
 	return NewPage(items, paging, total), nil
+}
+
+// listPlacesNearest loads the radius-bounded matches (the $geoWithin filter
+// already caps the set), applies open_now, orders by distance from the origin,
+// then paginates in memory. $geoWithin doesn't sort by distance and can't be
+// combined with a $text-driven server sort, so ordering is done here.
+func listPlacesNearest(ctx context.Context, filter bson.M, lat, lon float64, f PlaceFilter, paging utils.Paging) (*Page[PlaceView], error) {
+	cur, err := db.Places().Find(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	var matched []models.Place
+	if err = cur.All(ctx, &matched); err != nil {
+		return nil, err
+	}
+
+	if f.OpenNow != nil && *f.OpenNow {
+		now := time.Now()
+		open := make([]models.Place, 0, len(matched))
+		for _, p := range matched {
+			if v := utils.IsOpen(p.WeeklyHours, now); v != nil && *v {
+				open = append(open, p)
+			}
+		}
+		matched = open
+	}
+
+	sort.Slice(matched, func(i, j int) bool {
+		return geoDistSq(lat, lon, matched[i].Lat, matched[i].Lon) <
+			geoDistSq(lat, lon, matched[j].Lat, matched[j].Lon)
+	})
+
+	return pagePlaces(matched, paging), nil
+}
+
+// geoDistSq is a cheap squared-distance proxy (equirectangular, longitude scaled
+// by latitude) — monotonic with true distance over the small radii used here, so
+// it's enough for ordering without a sqrt or full haversine.
+func geoDistSq(lat1, lon1, lat2, lon2 float64) float64 {
+	dLat := lat1 - lat2
+	dLon := (lon1 - lon2) * math.Cos(lat1*math.Pi/180)
+	return dLat*dLat + dLon*dLon
+}
+
+// searchWordMaxLen is the rune-length cutoff below which a single-word query is
+// treated as a quick prefix/typeahead lookup (regex contains on name+slug)
+// rather than a full $text search.
+const searchWordMaxLen = 7
+
+// buildSearch returns the filter fragment for a search query, choosing the
+// strategy by query shape:
+//
+//   - one short word (< searchWordMaxLen runes): case-insensitive "contains"
+//     regex on name + slug. Catches partial typing like "Choy" -> "Choyxona",
+//     which $text (whole-word) can't, and keeps typeahead snappy.
+//   - anything longer or multi-word: $text over the index spanning name, slug,
+//     description, and address — word-aware and index-backed for real queries.
+//
+// Regex input is escaped so user text can't inject metacharacters.
+func buildSearch(q string) bson.M {
+	if utf8.RuneCountInString(q) < searchWordMaxLen && len(strings.Fields(q)) == 1 {
+		rx := primitive.Regex{Pattern: regexp.QuoteMeta(q), Options: "i"}
+		return bson.M{"$or": bson.A{
+			bson.M{"name": rx},
+			bson.M{"slug": rx},
+		}}
+	}
+	return bson.M{"$text": bson.M{"$search": q}}
+}
+
+// mergeFilter copies src's keys into dst.
+func mergeFilter(dst, src bson.M) {
+	for k, v := range src {
+		dst[k] = v
+	}
 }
 
 // listPlacesOpenNow fetches all matching places (no DB-level skip/limit) and
@@ -142,66 +238,12 @@ func listPlacesOpenNow(ctx context.Context, filter bson.M, sortOpts *options.Fin
 			open = append(open, p)
 		}
 	}
-	total := int64(len(open))
-	start := min(int(paging.Skip), len(open))
-	end := min(start+paging.Limit, len(open))
-	views := make([]PlaceView, 0, end-start)
-	for _, p := range open[start:end] {
-		views = append(views, *NewPlaceView(p))
-	}
-	return NewPage(views, paging, total), nil
+	return pagePlaces(open, paging), nil
 }
 
-// listPlacesTrending aggregates review counts for the last 7 days, then
-// fetches and re-orders matching places by trending score.
-func listPlacesTrending(ctx context.Context, baseFilter bson.M, paging utils.Paging) (*Page[PlaceView], error) {
-	since := time.Now().UTC().Add(-7 * 24 * time.Hour)
-	pipeline := mongo.Pipeline{
-		{{Key: "$match", Value: bson.M{"created_at": bson.M{"$gte": since}}}},
-		{{Key: "$group", Value: bson.M{"_id": "$place_id", "count": bson.M{"$sum": 1}}}},
-		{{Key: "$sort", Value: bson.D{{Key: "count", Value: -1}}}},
-	}
-	cur, err := db.Reviews().Aggregate(ctx, pipeline)
-	if err != nil {
-		return nil, err
-	}
-	defer cur.Close(ctx)
-	type trendItem struct {
-		PlaceID string `bson:"_id"`
-	}
-	var trendItems []trendItem
-	if err = cur.All(ctx, &trendItems); err != nil {
-		return nil, err
-	}
-	if len(trendItems) == 0 {
-		return NewPage([]PlaceView{}, paging, 0), nil
-	}
-
-	allIDs := make([]string, 0, len(trendItems))
-	posMap := make(map[string]int, len(trendItems))
-	for i, item := range trendItems {
-		allIDs = append(allIDs, item.PlaceID)
-		posMap[item.PlaceID] = i
-	}
-
-	placeFilter := bson.M{}
-	for k, v := range baseFilter {
-		placeFilter[k] = v
-	}
-	placeFilter["_id"] = bson.M{"$in": allIDs}
-
-	cur2, err := db.Places().Find(ctx, placeFilter, nil)
-	if err != nil {
-		return nil, err
-	}
-	var places []models.Place
-	if err = cur2.All(ctx, &places); err != nil {
-		return nil, err
-	}
-	sort.Slice(places, func(i, j int) bool {
-		return posMap[places[i].ID] < posMap[places[j].ID]
-	})
-
+// pagePlaces applies in-memory pagination to an already-ordered slice and wraps
+// the window as PlaceViews.
+func pagePlaces(places []models.Place, paging utils.Paging) *Page[PlaceView] {
 	total := int64(len(places))
 	start := min(int(paging.Skip), len(places))
 	end := min(start+paging.Limit, len(places))
@@ -209,9 +251,8 @@ func listPlacesTrending(ctx context.Context, baseFilter bson.M, paging utils.Pag
 	for _, p := range places[start:end] {
 		views = append(views, *NewPlaceView(p))
 	}
-	return NewPage(views, paging, total), nil
+	return NewPage(views, paging, total)
 }
-
 
 func GetPlaceView(ctx context.Context, idOrSlug string, viewerID *string, viewerTyp *string) (*PlaceView, error) {
 	var p *models.Place

@@ -664,9 +664,7 @@ definitions:
       created_by:
         type: string
       created_by_user:
-        allOf:
-        - $ref: '#/definitions/models.UserMini'
-        description: CategoryName  *models.I18nText `json:"category_name,omitempty"`
+        $ref: '#/definitions/models.UserMini'
       description:
         $ref: '#/definitions/models.I18nText'
       id:
@@ -692,6 +690,8 @@ definitions:
       phone:
         type: string
       review_count:
+        type: integer
+      saved_count:
         type: integer
       slug:
         type: string
@@ -1705,7 +1705,7 @@ paths:
         in: query
         name: query
         type: string
-      - description: 'Sort: top|recent|nearest'
+      - description: 'Sort: top|recent|nearest (default top)'
         in: query
         name: sort
         type: string
@@ -1717,6 +1717,14 @@ paths:
         in: query
         name: near
         type: string
+      - description: Search radius in meters (required with sort=nearest)
+        in: query
+        name: near_max_distance
+        type: integer
+      - description: Only return places open right now
+        in: query
+        name: open_now
+        type: boolean
       - description: Page number
         in: query
         name: page

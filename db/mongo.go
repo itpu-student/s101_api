@@ -92,12 +92,19 @@ func EnsureIndexes(ctx context.Context) {
 	mustIdx(ctx, Places(), mongo.IndexModel{
 		Keys: bson.D{{Key: "status", Value: 1}, {Key: "category_id", Value: 1}},
 	})
+	// Text search index for ListPlaces. Mongo allows only one text index per
+	// collection, so drop any older text index before (re)creating this set.
+	dropForeignTextIndex(ctx, Places(), "places_text")
 	mustIdx(ctx, Places(), mongo.IndexModel{
 		Keys: bson.D{
 			{Key: "name", Value: "text"},
+			{Key: "slug", Value: "text"},
 			{Key: "description.en", Value: "text"},
 			{Key: "description.uz", Value: "text"},
+			{Key: "address.en", Value: "text"},
+			{Key: "address.uz", Value: "text"},
 		},
+		Options: options.Index().SetName("places_text"),
 	})
 	mustIdx(ctx, Places(), mongo.IndexModel{Keys: bson.D{{Key: "avg_rating", Value: -1}}})
 	mustIdx(ctx, Places(), mongo.IndexModel{Keys: bson.D{{Key: "created_by", Value: 1}}})
@@ -162,5 +169,37 @@ func EnsureIndexes(ctx context.Context) {
 func mustIdx(ctx context.Context, c *mongo.Collection, m mongo.IndexModel) {
 	if _, err := c.Indexes().CreateOne(ctx, m); err != nil {
 		log.Printf("index create on %s failed: %v", c.Name(), err)
+	}
+}
+
+// dropForeignTextIndex drops an existing text index whose name differs from
+// keepName. MongoDB permits only one text index per collection, so a changed
+// field set can't be created until the stale one is removed.
+func dropForeignTextIndex(ctx context.Context, c *mongo.Collection, keepName string) {
+	cur, err := c.Indexes().List(ctx)
+	if err != nil {
+		log.Printf("list indexes on %s failed: %v", c.Name(), err)
+		return
+	}
+	var idxs []bson.M
+	if err := cur.All(ctx, &idxs); err != nil {
+		log.Printf("decode indexes on %s failed: %v", c.Name(), err)
+		return
+	}
+	for _, ix := range idxs {
+		name, _ := ix["name"].(string)
+		key, _ := ix["key"].(bson.M)
+		isText := false
+		for _, v := range key {
+			if v == "text" { // text indexes expose an "_fts": "text" key
+				isText = true
+				break
+			}
+		}
+		if isText && name != keepName {
+			if _, err := c.Indexes().DropOne(ctx, name); err != nil {
+				log.Printf("drop text index %s on %s failed: %v", name, c.Name(), err)
+			}
+		}
 	}
 }
