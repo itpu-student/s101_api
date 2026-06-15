@@ -105,7 +105,10 @@ func ListPlaces(ctx context.Context, f PlaceFilter, paging utils.Paging) (*Page[
 		if search != nil {
 			mergeFilter(filter, search)
 		}
-		return listPlacesNearest(ctx, filter, *f.NearLat, *f.NearLon, f, paging)
+		if f.OpenNow != nil && *f.OpenNow {
+			mergeFilter(filter, openNowFilter(time.Now()))
+		}
+		return listPlacesNearest(ctx, filter, *f.NearLat, *f.NearLon, paging)
 	case SortRecent:
 		findOpts.SetSort(bson.D{{Key: "created_at", Value: -1}})
 	case SortTop:
@@ -119,7 +122,7 @@ func ListPlaces(ctx context.Context, f PlaceFilter, paging utils.Paging) (*Page[
 	}
 
 	if f.OpenNow != nil && *f.OpenNow {
-		return listPlacesOpenNow(ctx, filter, findOpts, paging)
+		mergeFilter(filter, openNowFilter(time.Now()))
 	}
 
 	findOpts.SetSkip(paging.Skip).SetLimit(int64(paging.Limit))
@@ -144,11 +147,11 @@ func ListPlaces(ctx context.Context, f PlaceFilter, paging utils.Paging) (*Page[
 	return NewPage(items, paging, total), nil
 }
 
-// listPlacesNearest loads the radius-bounded matches (the $geoWithin filter
-// already caps the set), applies open_now, orders by distance from the origin,
-// then paginates in memory. $geoWithin doesn't sort by distance and can't be
-// combined with a $text-driven server sort, so ordering is done here.
-func listPlacesNearest(ctx context.Context, filter bson.M, lat, lon float64, f PlaceFilter, paging utils.Paging) (*Page[PlaceView], error) {
+// listPlacesNearest loads the radius-bounded matches (the $geoWithin filter,
+// plus open_now when requested, already cap the set), orders them by distance
+// from the origin, then paginates in memory. $geoWithin doesn't sort by distance
+// and can't be combined with a $text-driven server sort, so ordering is done here.
+func listPlacesNearest(ctx context.Context, filter bson.M, lat, lon float64, paging utils.Paging) (*Page[PlaceView], error) {
 	cur, err := db.Places().Find(ctx, filter)
 	if err != nil {
 		return nil, err
@@ -156,17 +159,6 @@ func listPlacesNearest(ctx context.Context, filter bson.M, lat, lon float64, f P
 	var matched []models.Place
 	if err = cur.All(ctx, &matched); err != nil {
 		return nil, err
-	}
-
-	if f.OpenNow != nil && *f.OpenNow {
-		now := time.Now()
-		open := make([]models.Place, 0, len(matched))
-		for _, p := range matched {
-			if v := utils.IsOpen(p.WeeklyHours, now); v != nil && *v {
-				open = append(open, p)
-			}
-		}
-		matched = open
 	}
 
 	sort.Slice(matched, func(i, j int) bool {
@@ -219,26 +211,67 @@ func mergeFilter(dst, src bson.M) {
 	}
 }
 
-// listPlacesOpenNow fetches all matching places (no DB-level skip/limit) and
-// filters in-memory by IsOpen, then paginates. MongoDB can't evaluate
-// time-based weekly_hours natively.
-func listPlacesOpenNow(ctx context.Context, filter bson.M, sortOpts *options.FindOptions, paging utils.Paging) (*Page[PlaceView], error) {
-	cur, err := db.Places().Find(ctx, filter, sortOpts)
-	if err != nil {
-		return nil, err
+// openNowFilter builds a query fragment selecting places open at now, mirroring
+// utils.IsOpen: today's normal/overnight ranges plus yesterday's overnight spill.
+// The weekday keys and current HH:MM are computed here (server-local zone) and
+// injected as constants, so Mongo only does string comparison via $expr — it
+// never needs to know the time. Zero-padded HH:MM compares lexically =
+// chronologically. Blank-hours places match nothing and are excluded, as before.
+func openNowFilter(now time.Time) bson.M {
+	today := "$weekly_hours." + weekdayKey(now.Weekday())
+	yest := "$weekly_hours." + weekdayKey((now.Weekday()+6)%7) // yesterday
+	cur := now.Format("15:04")
+
+	return bson.M{"$expr": bson.M{"$or": bson.A{
+		// any of today's ranges open now
+		bson.M{"$anyElementTrue": bson.M{"$map": bson.M{
+			"input": bson.M{"$ifNull": bson.A{today, bson.A{}}},
+			"as":    "r",
+			"in": bson.M{"$or": bson.A{
+				// normal range: open <= close AND open <= cur < close
+				bson.M{"$and": bson.A{
+					bson.M{"$lte": bson.A{"$$r.open", "$$r.close"}},
+					bson.M{"$lte": bson.A{"$$r.open", cur}},
+					bson.M{"$gt": bson.A{"$$r.close", cur}},
+				}},
+				// overnight starting today: open > close AND cur >= open
+				bson.M{"$and": bson.A{
+					bson.M{"$gt": bson.A{"$$r.open", "$$r.close"}},
+					bson.M{"$gte": bson.A{cur, "$$r.open"}},
+				}},
+			}},
+		}}},
+		// yesterday's overnight range spilling past midnight: open > close AND cur < close
+		bson.M{"$anyElementTrue": bson.M{"$map": bson.M{
+			"input": bson.M{"$ifNull": bson.A{yest, bson.A{}}},
+			"as":    "r",
+			"in": bson.M{"$and": bson.A{
+				bson.M{"$gt": bson.A{"$$r.open", "$$r.close"}},
+				bson.M{"$lt": bson.A{cur, "$$r.close"}},
+			}},
+		}}},
+	}}}
+}
+
+// weekdayKey maps a weekday to the bson key used in WeeklyHours.
+func weekdayKey(d time.Weekday) string {
+	switch d {
+	case time.Monday:
+		return "mon"
+	case time.Tuesday:
+		return "tue"
+	case time.Wednesday:
+		return "wed"
+	case time.Thursday:
+		return "thu"
+	case time.Friday:
+		return "fri"
+	case time.Saturday:
+		return "sat"
+	case time.Sunday:
+		return "sun"
 	}
-	var all []models.Place
-	if err = cur.All(ctx, &all); err != nil {
-		return nil, err
-	}
-	now := time.Now()
-	open := make([]models.Place, 0, len(all))
-	for _, p := range all {
-		if v := utils.IsOpen(p.WeeklyHours, now); v != nil && *v {
-			open = append(open, p)
-		}
-	}
-	return pagePlaces(open, paging), nil
+	return ""
 }
 
 // pagePlaces applies in-memory pagination to an already-ordered slice and wraps
